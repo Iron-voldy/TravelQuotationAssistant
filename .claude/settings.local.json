@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(copy /Y api.backup.js api.js:*)",
+      "Bash(npm install:*)",
+      "Bash(lcp:*)",
+      "Bash(npm start)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

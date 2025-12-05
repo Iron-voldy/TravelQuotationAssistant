@@ -1,0 +1,558 @@
+{
+  "info": {
+    "_postman_id": "travel-quotation-assistant-collection",
+    "name": "Travel Quotation Assistant API",
+    "description": "Postman collection for testing the Travel Quotation Assistant backend",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Authentication",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.access_token) {",
+                  "        pm.environment.set('authToken', jsonData.access_token);",
+                  "        pm.environment.set('userId', jsonData.user.id);",
+                  "        pm.environment.set('userName', jsonData.user.name);",
+                  "        console.log('Login successful. Token saved to environment.');",
+                  "    }",
+                  "}",
+                  ""
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "email",
+                  "value": "test@example.com",
+                  "type": "text"
+                },
+                {
+                  "key": "password",
+                  "value": "password123",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Login with email and password. Returns access token that will be automatically saved to environment."
+          },
+          "response": []
+        },
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "name",
+                  "value": "John Doe",
+                  "type": "text"
+                },
+                {
+                  "key": "email",
+                  "value": "john@example.com",
+                  "type": "text"
+                },
+                {
+                  "key": "password",
+                  "value": "password123",
+                  "type": "text"
+                },
+                {
+                  "key": "password_confirmation",
+                  "value": "password123",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            },
+            "description": "Register a new user account"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. Travel Assistant (Main Feature)",
+      "item": [
+        {
+          "name": "Send Chat Message",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.quotation_no) {",
+                  "        pm.environment.set('quotationNo', jsonData.quotation_no);",
+                  "        console.log('Quotation No: ' + jsonData.quotation_no);",
+                  "    }",
+                  "    if (jsonData.reference_id) {",
+                  "        pm.environment.set('referenceId', jsonData.reference_id);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"chatInput\": \"I need a 7-day trip to Japan for 2 people in March 2025. Budget around $3000 per person.\",\n    \"sessionId\": \"session_1234567890_abcdefg\"\n}"
+            },
+            "url": {
+              "raw": "https://aahaas-ai.app.n8n.cloud/webhook/085ddfb8-f53a-456e-b662-85de50da8147",
+              "protocol": "https",
+              "host": [
+                "aahaas-ai",
+                "app",
+                "n8n",
+                "cloud"
+              ],
+              "path": [
+                "webhook",
+                "085ddfb8-f53a-456e-b662-85de50da8147"
+              ]
+            },
+            "description": "Send a chat message to the Travel Quotation Assistant webhook. This creates a travel quotation request.\n\n**Parameters:**\n- `chatInput`: The user's travel request message\n- `sessionId`: Unique session identifier (should be consistent for same user session)\n\n**Response includes:**\n- `quotation_no`: The quotation reference number\n- `output`: The assistant's response message"
+          },
+          "response": []
+        },
+        {
+          "name": "Send Chat Message (Complex Request)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"chatInput\": \"I'm looking for a luxury 10-day honeymoon package to Maldives and Bali for 2 people. We prefer 5-star hotels, international flights, and daily spa sessions. Our budget is around $10,000 per person. We want to travel in June 2025.\",\n    \"sessionId\": \"session_honeymoon_june2025\"\n}"
+            },
+            "url": {
+              "raw": "https://aahaas-ai.app.n8n.cloud/webhook/085ddfb8-f53a-456e-b662-85de50da8147",
+              "protocol": "https",
+              "host": [
+                "aahaas-ai",
+                "app",
+                "n8n",
+                "cloud"
+              ],
+              "path": [
+                "webhook",
+                "085ddfb8-f53a-456e-b662-85de50da8147"
+              ]
+            },
+            "description": "Send a more detailed chat message with specific preferences and requirements"
+          },
+          "response": []
+        },
+        {
+          "name": "Send Chat Message (Budget Travel)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"chatInput\": \"Looking for a budget-friendly 5-day trip to Southeast Asia (Thailand/Vietnam) for 3 people. Budget is $1000 total. We prefer hostels/budget hotels and street food. Travel dates flexible.\",\n    \"sessionId\": \"session_budget_asia_2025\"\n}"
+            },
+            "url": {
+              "raw": "https://aahaas-ai.app.n8n.cloud/webhook/085ddfb8-f53a-456e-b662-85de50da8147",
+              "protocol": "https",
+              "host": [
+                "aahaas-ai",
+                "app",
+                "n8n",
+                "cloud"
+              ],
+              "path": [
+                "webhook",
+                "085ddfb8-f53a-456e-b662-85de50da8147"
+              ]
+            },
+            "description": "Send a budget travel request"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. Booking Management",
+      "item": [
+        {
+          "name": "Save Booking",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"quotation_no\": \"{{quotationNo}}\",\n    \"reference_id\": \"{{referenceId}}\",\n    \"customer_name\": \"John Doe\",\n    \"customer_email\": \"john@example.com\",\n    \"destination\": \"Japan\",\n    \"travel_dates\": \"2025-03-01 to 2025-03-07\",\n    \"number_of_travelers\": 2,\n    \"total_budget\": 6000,\n    \"accommodation_type\": \"Hotel\",\n    \"booking_status\": \"pending\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/booking/save",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "booking",
+                "save"
+              ]
+            },
+            "description": "Save a travel booking after quotation is generated. Requires authentication.\n\n**Headers:**\n- `Authorization`: Bearer token (obtained from login)\n- `Content-Type`: application/json\n\n**Body:**\n- `quotation_no`: The quotation reference number from assistant\n- `reference_id`: Reference ID from the quotation\n- `customer_name`: Name of the traveler\n- `customer_email`: Email address\n- `destination`: Travel destination\n- `travel_dates`: Date range for travel\n- `number_of_travelers`: How many people\n- `total_budget`: Total budget in USD\n- `accommodation_type`: Type of accommodation (Hotel, Resort, Hostel, etc.)\n- `booking_status`: Status of booking (pending, confirmed, cancelled)"
+          },
+          "response": []
+        },
+        {
+          "name": "Retrieve Booking",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"quotation_no\": \"{{quotationNo}}\",\n    \"reference_id\": \"{{referenceId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/booking/retrieve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "booking",
+                "retrieve"
+              ]
+            },
+            "description": "Retrieve a previously saved booking using quotation number and reference ID"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4. Quotation Management",
+      "item": [
+        {
+          "name": "List Quotations",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/quotation/list?page=1&limit=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "quotation",
+                "list"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Get list of all quotations for the authenticated user\n\n**Query Parameters:**\n- `page`: Page number (default: 1)\n- `limit`: Number of items per page (default: 10)"
+          },
+          "response": []
+        },
+        {
+          "name": "View Quotation PNL",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/quotation/view/pnl?reference_id={{referenceId}}&quotation_no={{quotationNo}}&currency=USD",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "quotation",
+                "view",
+                "pnl"
+              ],
+              "query": [
+                {
+                  "key": "reference_id",
+                  "value": "{{referenceId}}"
+                },
+                {
+                  "key": "quotation_no",
+                  "value": "{{quotationNo}}"
+                },
+                {
+                  "key": "currency",
+                  "value": "USD"
+                }
+              ]
+            },
+            "description": "View Profit & Loss (PNL) analysis for a specific quotation\n\n**Query Parameters:**\n- `reference_id`: Reference ID of the quotation\n- `quotation_no`: Quotation number\n- `currency`: Currency code (USD, EUR, GBP, etc.)"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "5. Content API",
+      "item": [
+        {
+          "name": "Get Places",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/content/place/?search=Japan&limit=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "content",
+                "place",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "Japan"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Search for travel destinations/places\n\n**Query Parameters:**\n- `search`: Search keyword (destination name)\n- `limit`: Maximum number of results"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Hotels",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/content/hotel?city=Tokyo&stars=4&limit=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "content",
+                "hotel"
+              ],
+              "query": [
+                {
+                  "key": "city",
+                  "value": "Tokyo"
+                },
+                {
+                  "key": "stars",
+                  "value": "4"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Search for hotels by city and star rating\n\n**Query Parameters:**\n- `city`: City name\n- `stars`: Hotel star rating (1-5)\n- `limit`: Maximum number of results"
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8011/proxy/api",
+      "type": "string",
+      "description": "Base API URL with CORS proxy"
+    },
+    {
+      "key": "authToken",
+      "value": "",
+      "type": "string",
+      "description": "Authentication token (automatically set after login)"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string",
+      "description": "User ID (automatically set after login)"
+    },
+    {
+      "key": "userName",
+      "value": "",
+      "type": "string",
+      "description": "User name (automatically set after login)"
+    },
+    {
+      "key": "quotationNo",
+      "value": "",
+      "type": "string",
+      "description": "Quotation number (automatically set after chat message)"
+    },
+    {
+      "key": "referenceId",
+      "value": "",
+      "type": "string",
+      "description": "Reference ID (automatically set after chat message)"
+    }
+  ]
+}

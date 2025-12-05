@@ -1,0 +1,568 @@
+/* Register Page */
+.register-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #f7fafc;
+}
+
+.register-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+}
+
+.register-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  max-width: 1200px;
+  width: 100%;
+  background: white;
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 78, 100, 0.15);
+}
+
+/* Left Side - Branding */
+.register-branding {
+  position: relative;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  color: white;
+  padding: 60px 50px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.branding-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(0, 78, 100, 0.65) 0%, rgba(0, 101, 130, 0.60) 100%);
+  z-index: 1;
+}
+
+.branding-content {
+  position: relative;
+  z-index: 2;
+}
+
+.branding-content h1 {
+  font-size: 3rem;
+  font-weight: 800;
+  margin: 0 0 16px 0;
+  line-height: 1.2;
+}
+
+.branding-subtitle {
+  font-size: 1.2rem;
+  font-weight: 500;
+  opacity: 0.95;
+  margin: 0 0 50px 0;
+  line-height: 1.5;
+}
+
+.benefits-list {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.benefit-item {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.benefit-item i {
+  font-size: 1.8rem;
+  color: #10b981;
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+
+.benefit-item h3 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin: 0 0 6px 0;
+  color: white;
+}
+
+.benefit-item p {
+  font-size: 0.95rem;
+  margin: 0;
+  opacity: 0.9;
+  line-height: 1.5;
+}
+
+/* Right Side - Form */
+.register-form-section {
+  padding: 60px 50px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.register-form-container {
+  max-width: 450px;
+  width: 100%;
+}
+
+.register-form-container h2 {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #1a202c;
+  margin: 0 0 10px 0;
+}
+
+.form-subtitle {
+  font-size: 1rem;
+  color: #64748b;
+  margin: 0 0 32px 0;
+}
+
+/* Server Error Message */
+.server-error-message {
+  background: #fee2e2;
+  color: #dc2626;
+  padding: 14px 16px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  border: 1px solid #fecaca;
+}
+
+.server-error-message i {
+  font-size: 1.1rem;
+}
+
+/* Google Sign Up Button */
+.google-signup-btn {
+  width: 100%;
+  background: white;
+  border: 2px solid #e2e8f0;
+  padding: 14px 20px;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1a202c;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  transition: all 0.3s ease;
+  margin-bottom: 24px;
+}
+
+.google-signup-btn:hover {
+  border-color: #004e64;
+  background: #f8fafc;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 78, 100, 0.1);
+}
+
+.google-signup-btn img {
+  width: 20px;
+  height: 20px;
+}
+
+/* Divider */
+.divider {
+  position: relative;
+  text-align: center;
+  margin: 24px 0;
+}
+
+.divider::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: #e2e8f0;
+}
+
+.divider span {
+  position: relative;
+  background: white;
+  padding: 0 16px;
+  color: #94a3b8;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+/* Form Styles */
+.register-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+.form-group label i {
+  color: #004e64;
+  font-size: 0.9rem;
+}
+
+.form-group input[type="text"],
+.form-group input[type="email"],
+.form-group input[type="tel"],
+.form-group input[type="password"] {
+  padding: 12px 16px;
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #1a202c;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: #004e64;
+  box-shadow: 0 0 0 4px rgba(0, 78, 100, 0.1);
+}
+
+.form-group input.error {
+  border-color: #ef4444;
+}
+
+.form-group input.error:focus {
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1);
+}
+
+.form-group input:disabled {
+  background: #f1f5f9;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* Password Input Wrapper */
+.password-input-wrapper {
+  position: relative;
+}
+
+.password-input-wrapper input {
+  width: 100%;
+  padding-right: 48px;
+}
+
+.toggle-password {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s ease;
+}
+
+.toggle-password:hover {
+  color: #004e64;
+}
+
+.toggle-password i {
+  font-size: 1rem;
+}
+
+/* Password Hint */
+.password-hint {
+  font-size: 0.8rem;
+  color: #64748b;
+  margin-top: -4px;
+}
+
+/* Error Message */
+.error-message {
+  font-size: 0.85rem;
+  color: #ef4444;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.error-message::before {
+  content: '⚠';
+  font-size: 0.9rem;
+}
+
+/* Checkbox Group */
+.checkbox-group {
+  margin-top: 4px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+  font-weight: 500;
+  color: #475569;
+}
+
+.checkbox-label input[type="checkbox"] {
+  margin-top: 3px;
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #004e64;
+}
+
+.checkbox-label input[type="checkbox"].error {
+  outline: 2px solid #ef4444;
+  outline-offset: 2px;
+}
+
+.checkbox-label span {
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.checkbox-label a {
+  color: #004e64;
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.checkbox-label a:hover {
+  color: #006582;
+  text-decoration: underline;
+}
+
+/* Register Button */
+.register-btn {
+  background: linear-gradient(135deg, #004e64 0%, #006582 100%);
+  color: white;
+  border: none;
+  padding: 14px 24px;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: all 0.3s ease;
+  margin-top: 8px;
+  box-shadow: 0 6px 20px rgba(0, 78, 100, 0.35);
+}
+
+.register-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 78, 100, 0.45);
+}
+
+.register-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.register-btn i {
+  font-size: 1.1rem;
+}
+
+/* Login Link */
+.login-link {
+  text-align: center;
+  margin-top: 24px;
+  font-size: 0.95rem;
+  color: #64748b;
+}
+
+.login-link a {
+  color: #004e64;
+  font-weight: 700;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.login-link a:hover {
+  color: #006582;
+  text-decoration: underline;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .register-content {
+    grid-template-columns: 1fr;
+  }
+
+  .register-branding {
+    padding: 40px 30px;
+  }
+
+  .branding-content h1 {
+    font-size: 2.5rem;
+  }
+
+  .benefits-list {
+    gap: 24px;
+  }
+
+  .register-form-section {
+    padding: 40px 30px;
+  }
+}
+
+@media (max-width: 768px) {
+  .register-container {
+    padding: 20px;
+  }
+
+  .register-content {
+    border-radius: 16px;
+  }
+
+  .register-branding {
+    padding: 32px 24px;
+  }
+
+  .branding-content h1 {
+    font-size: 2rem;
+  }
+
+  .branding-subtitle {
+    font-size: 1rem;
+    margin-bottom: 32px;
+  }
+
+  .benefits-list {
+    gap: 20px;
+  }
+
+  .benefit-item {
+    gap: 16px;
+  }
+
+  .benefit-item i {
+    font-size: 1.5rem;
+  }
+
+  .benefit-item h3 {
+    font-size: 1rem;
+  }
+
+  .benefit-item p {
+    font-size: 0.9rem;
+  }
+
+  .register-form-section {
+    padding: 32px 24px;
+  }
+
+  .register-form-container h2 {
+    font-size: 1.75rem;
+  }
+
+  .form-subtitle {
+    font-size: 0.95rem;
+  }
+
+  .google-signup-btn {
+    padding: 12px 18px;
+    font-size: 0.95rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .register-container {
+    padding: 16px;
+  }
+
+  .register-branding {
+    padding: 24px 20px;
+  }
+
+  .branding-content h1 {
+    font-size: 1.75rem;
+  }
+
+  .branding-subtitle {
+    font-size: 0.95rem;
+    margin-bottom: 24px;
+  }
+
+  .benefits-list {
+    gap: 16px;
+  }
+
+  .benefit-item {
+    gap: 12px;
+  }
+
+  .benefit-item i {
+    font-size: 1.3rem;
+  }
+
+  .benefit-item h3 {
+    font-size: 0.95rem;
+  }
+
+  .benefit-item p {
+    font-size: 0.85rem;
+  }
+
+  .register-form-section {
+    padding: 24px 20px;
+  }
+
+  .register-form-container h2 {
+    font-size: 1.5rem;
+  }
+
+  .register-form {
+    gap: 16px;
+  }
+
+  .form-group input[type="text"],
+  .form-group input[type="email"],
+  .form-group input[type="tel"],
+  .form-group input[type="password"] {
+    padding: 10px 14px;
+    font-size: 0.9rem;
+  }
+
+  .google-signup-btn {
+    padding: 11px 16px;
+    font-size: 0.9rem;
+  }
+
+  .register-btn {
+    padding: 12px 20px;
+    font-size: 0.95rem;
+  }
+}
