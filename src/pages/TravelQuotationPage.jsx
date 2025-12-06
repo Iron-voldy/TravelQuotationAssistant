@@ -5,7 +5,7 @@ import { assistantAPI } from '../services/api';
 import './TravelQuotationPage.css';
 
 const TravelQuotationPage = () => {
-  const { user, logout } = useAuth();
+  const { user, token, logout } = useAuth(); // Get token from auth context
   const navigate = useNavigate();
 
   const [currentChatId, setCurrentChatId] = useState(null);
@@ -85,8 +85,8 @@ const TravelQuotationPage = () => {
       id: chatId,
       title: 'New Chat',
       createdAt: new Date().toISOString(),
-      messages: [],
-      sessionId: 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
+      messages: []
+      // No longer store sessionId in chat - we'll use auth token dynamically
     };
 
     const updatedChats = { ...chats, [chatId]: newChat };
@@ -134,22 +134,27 @@ const TravelQuotationPage = () => {
 
     // Create new chat if none exists
     let chatId = currentChatId;
+    let currentChatData;
+
     if (!chatId) {
       chatId = 'chat_' + Date.now();
       const newChat = {
         id: chatId,
         title: trimmedMessage.substring(0, 50) + (trimmedMessage.length > 50 ? '...' : ''),
         createdAt: new Date().toISOString(),
-        messages: [],
-        sessionId: 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
+        messages: []
+        // No longer store sessionId - we use auth token
       };
       const updatedChats = { ...chats, [chatId]: newChat };
       setChats(updatedChats);
       localStorage.setItem('travel_chats', JSON.stringify(updatedChats));
       setCurrentChatId(chatId);
+      currentChatData = newChat; // Use the newly created chat
+    } else {
+      currentChatData = chats[chatId] || {};
     }
 
-    const chat = chats[chatId] || {};
+    const chat = currentChatData;
 
     // Update chat title from first message
     if (chat.messages && chat.messages.length === 0) {
@@ -200,7 +205,22 @@ const TravelQuotationPage = () => {
     localStorage.setItem('travel_chats', JSON.stringify(updatedChatsWithConfirm));
 
     try {
-      const response = await assistantAPI.sendMessage(trimmedMessage, chat.sessionId);
+      // Use auth token as sessionId
+      if (!token) {
+        console.error('[SEND MESSAGE] No auth token available!');
+        setError('Authentication token missing. Please login again.');
+        setIsLoading(false);
+        return;
+      }
+
+      console.log('[SEND MESSAGE] Chat ID:', chatId);
+      console.log('[SEND MESSAGE] Auth Token (sessionId):', token.substring(0, 20) + '...');
+      console.log('[SEND MESSAGE] Sending to webhook:', {
+        chatInput: trimmedMessage,
+        sessionId: token
+      });
+
+      const response = await assistantAPI.sendMessage(trimmedMessage, token);
 
       let assistantMessage = '';
       let isSuccess = false;
