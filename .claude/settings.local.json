@@ -4,7 +4,11 @@
       "Bash(copy /Y api.backup.js api.js:*)",
       "Bash(npm install:*)",
       "Bash(lcp:*)",
-      "Bash(npm start)"
+      "Bash(npm start)",
+      "Bash(dir /B:*)",
+      "Bash(npm run build:*)",
+      "Bash(cat:*)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []
