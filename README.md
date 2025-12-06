@@ -2,30 +2,34 @@
 
 AI-powered Travel Quotation Assistant with authentication and real-time chat support.
 
+## Live Demo
+
+**Production URL**: https://travel-quotation-assistant.vercel.app
+
 ## Deployment to Vercel
 
-This project is configured for automatic deployment to Vercel:
+This project is configured for automatic deployment to Vercel.
 
-### Quick Deploy
+### Environment Configuration
 
-1. Push your code to GitHub
-2. Import the project in Vercel
-3. Vercel will automatically detect the configuration from `vercel.json`
-4. Deploy!
-
-The environment variables are already configured in `vercel.json`:
+Environment variables are configured in `vercel.json` for automatic deployment:
 - `REACT_APP_API_URL`: https://stagev2.appletechlabs.com/api
-- `REACT_APP_WEBHOOK_URL`: Your webhook endpoint
+- `REACT_APP_WEBHOOK_URL`: AI webhook endpoint
 
-### Manual Environment Setup (if needed)
+**No manual configuration needed!** Just push to GitHub and Vercel will auto-deploy.
 
-If you need to override environment variables in Vercel:
+### Deployment Status
 
-1. Go to your project in Vercel Dashboard
-2. Navigate to Settings → Environment Variables
-3. Add these variables:
-   - `REACT_APP_API_URL`
-   - `REACT_APP_WEBHOOK_URL`
+The project will automatically redeploy when you push to the `main` branch. Vercel typically takes 2-3 minutes to build and deploy.
+
+### Troubleshooting Vercel Deployment
+
+If you see "Cannot connect to server" errors after deployment:
+
+1. **Wait for deployment to complete** - Check Vercel dashboard for build status
+2. **Clear browser cache** - Hard refresh (Ctrl+Shift+R or Cmd+Shift+R)
+3. **Check Vercel logs** - View build logs in Vercel dashboard
+4. **Verify environment variables** - Ensure `vercel.json` has correct API URL
 
 ## Local Development
 
