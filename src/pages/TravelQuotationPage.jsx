@@ -227,25 +227,9 @@ const TravelQuotationPage = () => {
       } else if (response.refno) {
         quotationNo = response.refno;
         isSuccess = true;
-      } else if (response.id) {
-        quotationNo = response.id;
-        isSuccess = true;
       } else if (response.quotation_number) {
         quotationNo = response.quotation_number;
         isSuccess = true;
-      } else if (response.output && typeof response.output === 'string') {
-        // Extract from output text if present
-        const numberMatch = response.output.match(/(\d{6,})/);
-        if (numberMatch) {
-          quotationNo = numberMatch[1];
-          isSuccess = true;
-          console.log('Extracted number from output:', quotationNo);
-        } else {
-          // No number in output, generate one locally for tracking
-          quotationNo = Math.floor(100000 + Math.random() * 900000).toString();
-          isSuccess = true;
-          console.log('Generated local reference number:', quotationNo);
-        }
       } else if (Array.isArray(response) && response.length > 0) {
         // Handle if response is an array
         const firstItem = response[0];
@@ -253,8 +237,8 @@ const TravelQuotationPage = () => {
         if (firstItem.quotation_no) {
           quotationNo = firstItem.quotation_no;
           isSuccess = true;
-        } else if (firstItem.id) {
-          quotationNo = firstItem.id;
+        } else if (firstItem.reference_id) {
+          quotationNo = firstItem.reference_id;
           isSuccess = true;
         } else if (firstItem.refno) {
           quotationNo = firstItem.refno;
@@ -262,16 +246,26 @@ const TravelQuotationPage = () => {
         }
       }
 
-      // Always treat as success since webhook responded
-      isSuccess = true;
-
-      // If we found a quotation number, show the formatted message
+      // If we found a quotation number, show success message
       if (quotationNo) {
         assistantMessage = `Your Request Has Been Created\n\nYour Request No is ${quotationNo}\n\nOur team will review your travel request and send you a detailed quote shortly. Thank you for choosing our services.`;
+        isSuccess = true;
+      } else if (response.output) {
+        // Show the output from webhook (might be error or info message)
+        assistantMessage = response.output;
+        isSuccess = false;
+      } else if (response.message) {
+        // Show message from webhook
+        assistantMessage = response.message;
+        isSuccess = false;
+      } else if (response.error) {
+        // Show error from webhook
+        assistantMessage = `Error: ${response.error}`;
+        isSuccess = false;
       } else {
-        // Generate a reference number if none exists
-        quotationNo = Math.floor(100000 + Math.random() * 900000).toString();
-        assistantMessage = `Your Request Has Been Created\n\nYour Request No is ${quotationNo}\n\nOur team will review your travel request and send you a detailed quote shortly. Thank you for choosing our services.`;
+        // Default fallback message
+        assistantMessage = 'Your request has been received. Our team will review it and get back to you shortly.';
+        isSuccess = false;
       }
 
       console.log('Final Message:', assistantMessage);

@@ -1,6 +1,6 @@
 {
   "name": "travel-quotation-assistant",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "AI-powered Travel Quotation Assistant with authentication",
   "private": true,
   "dependencies": {
