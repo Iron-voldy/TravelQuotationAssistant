@@ -89,9 +89,10 @@ const LoginPage = () => {
         };
 
         const authToken = response.access_token || response.token;
+        const expiresIn = response.expires_in || 3600;
 
         if (authToken) {
-          login(userData, authToken);
+          login(userData, authToken, expiresIn);
           navigate('/assistant');
         } else {
           throw new Error('No authentication token received');

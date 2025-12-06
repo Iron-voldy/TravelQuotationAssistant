@@ -117,10 +117,11 @@ const RegisterPage = () => {
         };
 
         const authToken = response.access_token || response.token;
+        const expiresIn = response.expires_in || 3600;
 
         if (authToken) {
           // Auto-login after successful registration
-          login(userData, authToken);
+          login(userData, authToken, expiresIn);
           navigate('/assistant');
         } else {
           // If no token, redirect to login page

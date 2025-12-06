@@ -1,7 +1,35 @@
 // API Configuration
-// Using CORS Proxy - Run 'start-cors-proxy.bat' before starting the app
-const API_BASE_URL = 'http://localhost:8011/proxy/api';
-const WEBHOOK_URL = 'https://aahaas-ai.app.n8n.cloud/webhook/085ddfb8-f53a-456e-b662-85de50da8147';
+// Development: Uses local proxy via setupProxy.js to bypass CORS
+// Production: Direct HTTPS connection to backend
+//
+// Local Proxy automatically forwards:
+//   /api/* -> https://stagev2.appletechlabs.com/api/*
+//
+// Override with REACT_APP_API_URL environment variable if needed
+
+// Determine which API URL to use based on environment
+const getApiBaseUrl = () => {
+  // Check if explicitly set in environment
+  if (process.env.REACT_APP_API_URL) {
+    console.log('[API] Using custom API URL:', process.env.REACT_APP_API_URL);
+    return process.env.REACT_APP_API_URL;
+  }
+  
+  // Development: Use local proxy (setupProxy.js)
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[API] Using local development proxy via setupProxy.js');
+    return '/api'; // This will be proxied to https://stagev2.appletechlabs.com/api
+  }
+  
+  // Production: Direct backend connection
+  console.log('[API] Using production backend: https://stagev2.appletechlabs.com/api');
+  return 'https://stagev2.appletechlabs.com/api';
+};
+
+const API_BASE_URL = getApiBaseUrl();
+const WEBHOOK_URL = process.env.REACT_APP_WEBHOOK_URL || 'https://aahaas-ai.app.n8n.cloud/webhook/085ddfb8-f53a-456e-b662-85de50da8147';
+
+console.log('[API CONFIG] Base URL:', API_BASE_URL);
 
 // Helper function to get auth token
 const getAuthToken = () => {
@@ -83,7 +111,7 @@ export const authAPI = {
     } catch (error) {
       // Only show connection error if it's actually a connection error
       if (error.name === 'TypeError' && error.message === 'Failed to fetch') {
-        throw new Error('Cannot connect to server. Please check:\n1. Backend server is running\n2. CORS is enabled on the server\n3. API URL is correct: ' + API_BASE_URL);
+        throw new Error('Cannot connect to backend server. Please check:\n1. Backend server is running at: ' + API_BASE_URL + '\n2. CORS is enabled on the backend\n3. Your internet connection is working');
       }
       throw error;
     }
@@ -143,7 +171,7 @@ export const authAPI = {
     } catch (error) {
       // Only show connection error if it's actually a connection error
       if (error.name === 'TypeError' && error.message === 'Failed to fetch') {
-        throw new Error('Cannot connect to server. Please check:\n1. Backend server is running\n2. CORS is enabled on the server\n3. API URL is correct: ' + API_BASE_URL);
+        throw new Error('Cannot connect to backend server. Please check:\n1. Backend server is running at: ' + API_BASE_URL + '\n2. CORS is enabled on the backend\n3. Your internet connection is working');
       }
       throw error;
     }
