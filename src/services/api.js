@@ -313,8 +313,14 @@ export const assistantAPI = {
     const contentType = response.headers.get('content-type');
     const text = await response.text();
 
-    if (!text) {
+    console.log('[WEBHOOK] Response Status:', response.status);
+    console.log('[WEBHOOK] Content-Type:', contentType);
+    console.log('[WEBHOOK] Response Text:', text);
+    console.log('[WEBHOOK] Response Text Length:', text?.length);
+
+    if (!text || text.trim() === '') {
       // Return default response if empty
+      console.log('[WEBHOOK] Empty response, using default message');
       return {
         output: 'Your quotation is being prepared. Our team will get back to you shortly with a detailed quote.',
         success: true
@@ -323,14 +329,19 @@ export const assistantAPI = {
 
     if (contentType && contentType.includes('application/json')) {
       try {
-        return JSON.parse(text);
+        const jsonResponse = JSON.parse(text);
+        console.log('[WEBHOOK] Parsed JSON Response:', jsonResponse);
+        console.log('[WEBHOOK] Response Keys:', Object.keys(jsonResponse));
+        return jsonResponse;
       } catch (e) {
-        console.error('JSON parse error:', e, 'Response text:', text);
+        console.error('[WEBHOOK] JSON parse error:', e);
+        console.error('[WEBHOOK] Failed to parse text:', text);
         throw new Error('Invalid JSON response from server');
       }
     }
 
     // If not JSON, return as plain text response
+    console.log('[WEBHOOK] Non-JSON response, returning as text');
     return {
       output: text,
       success: true
