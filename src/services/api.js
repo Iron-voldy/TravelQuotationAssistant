@@ -318,12 +318,12 @@ export const assistantAPI = {
     console.log('[WEBHOOK] Response Text:', text);
     console.log('[WEBHOOK] Response Text Length:', text?.length);
 
+    // If status 200 but no response text, return error
     if (!text || text.trim() === '') {
-      // Return default response if empty
-      console.log('[WEBHOOK] Empty response, using default message');
+      console.error('[WEBHOOK] Empty response from webhook');
       return {
-        output: 'Your quotation is being prepared. Our team will get back to you shortly with a detailed quote.',
-        success: true
+        error: 'Oops! Something went wrong. Please contact the technical team.',
+        success: false
       };
     }
 
@@ -336,15 +336,18 @@ export const assistantAPI = {
       } catch (e) {
         console.error('[WEBHOOK] JSON parse error:', e);
         console.error('[WEBHOOK] Failed to parse text:', text);
-        throw new Error('Invalid JSON response from server');
+        return {
+          error: 'Oops! Something went wrong. Please contact the technical team.',
+          success: false
+        };
       }
     }
 
-    // If not JSON, return as plain text response
-    console.log('[WEBHOOK] Non-JSON response, returning as text');
+    // If not JSON, treat as error
+    console.log('[WEBHOOK] Non-JSON response received');
     return {
-      output: text,
-      success: true
+      error: 'Oops! Something went wrong. Please contact the technical team.',
+      success: false
     };
   }
 };

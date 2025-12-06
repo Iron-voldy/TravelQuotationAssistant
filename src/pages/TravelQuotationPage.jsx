@@ -246,25 +246,30 @@ const TravelQuotationPage = () => {
         }
       }
 
-      // If we found a quotation number, show success message
+      // Handle webhook response
       if (quotationNo) {
+        // SUCCESS: Found quotation number
         assistantMessage = `Your Request Has Been Created\n\nYour Request No is ${quotationNo}\n\nOur team will review your travel request and send you a detailed quote shortly. Thank you for choosing our services.`;
         isSuccess = true;
+      } else if (response.error) {
+        // ERROR: Webhook returned error field
+        assistantMessage = response.error;
+        isSuccess = false;
+      } else if (response.success === false) {
+        // ERROR: Webhook indicated failure
+        assistantMessage = response.output || response.message || 'Oops! Something went wrong. Please contact the technical team.';
+        isSuccess = false;
       } else if (response.output) {
-        // Show the output from webhook (might be error or info message)
-        assistantMessage = response.output;
+        // No quotation number but has output - treat as error
+        assistantMessage = 'Oops! Something went wrong. Please contact the technical team.';
         isSuccess = false;
       } else if (response.message) {
-        // Show message from webhook
-        assistantMessage = response.message;
-        isSuccess = false;
-      } else if (response.error) {
-        // Show error from webhook
-        assistantMessage = `Error: ${response.error}`;
+        // No quotation number but has message - treat as error
+        assistantMessage = 'Oops! Something went wrong. Please contact the technical team.';
         isSuccess = false;
       } else {
-        // Default fallback message
-        assistantMessage = 'Your request has been received. Our team will review it and get back to you shortly.';
+        // No quotation number and no recognizable fields - error
+        assistantMessage = 'Oops! Something went wrong. Please contact the technical team.';
         isSuccess = false;
       }
 
