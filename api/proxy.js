@@ -3,6 +3,23 @@
 
 const BACKEND_URL = 'https://stagev2.appletechlabs.com/api';
 
+// Disable body parsing to get raw body
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
+
+// Helper function to parse raw body buffer
+const getRawBody = (req) => {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    req.on('data', (chunk) => chunks.push(chunk));
+    req.on('end', () => resolve(Buffer.concat(chunks)));
+    req.on('error', reject);
+  });
+};
+
 module.exports = async (req, res) => {
   // Enable CORS for all origins (or restrict to your domain)
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -22,7 +39,7 @@ module.exports = async (req, res) => {
 
     console.log('[PROXY] Method:', req.method);
     console.log('[PROXY] Target URL:', targetUrl);
-    console.log('[PROXY] Headers:', req.headers);
+    console.log('[PROXY] Content-Type:', req.headers['content-type']);
 
     // Prepare headers for backend request
     const headers = {
@@ -43,27 +60,18 @@ module.exports = async (req, res) => {
 
     // For POST/PUT requests, forward the body
     if (req.method === 'POST' || req.method === 'PUT') {
-      // Handle FormData (multipart/form-data)
-      if (req.headers['content-type']?.includes('multipart/form-data')) {
-        // For FormData, we need to pass the body as-is
-        const formData = new URLSearchParams();
-        for (const [key, value] of Object.entries(req.body || {})) {
-          formData.append(key, value);
-        }
-        options.body = formData;
-        headers['Content-Type'] = 'application/x-www-form-urlencoded';
-      } else if (req.headers['content-type']?.includes('application/json')) {
-        // For JSON requests
-        options.body = JSON.stringify(req.body);
-        headers['Content-Type'] = 'application/json';
+      // Get raw body
+      const rawBody = await getRawBody(req);
+
+      console.log('[PROXY] Raw body length:', rawBody.length);
+
+      // Forward content-type and body as-is
+      if (req.headers['content-type']) {
+        headers['Content-Type'] = req.headers['content-type'];
+        options.body = rawBody;
       } else {
-        // Default: treat as form data
-        const formData = new URLSearchParams();
-        for (const [key, value] of Object.entries(req.body || {})) {
-          formData.append(key, value);
-        }
-        options.body = formData;
-        headers['Content-Type'] = 'application/x-www-form-urlencoded';
+        // If no content-type, assume it's form data
+        options.body = rawBody;
       }
     }
 
