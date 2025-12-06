@@ -14,14 +14,14 @@ const getApiBaseUrl = () => {
     console.log('[API] Using custom API URL:', process.env.REACT_APP_API_URL);
     return process.env.REACT_APP_API_URL;
   }
-  
+
   // Development: Use local proxy (setupProxy.js)
   if (process.env.NODE_ENV === 'development') {
     console.log('[API] Using local development proxy via setupProxy.js');
     return '/api'; // This will be proxied to https://stagev2.appletechlabs.com/api
   }
-  
-  // Production: Direct backend connection
+
+  // Production: Direct backend connection (or use proxy if REACT_APP_API_URL is set)
   console.log('[API] Using production backend: https://stagev2.appletechlabs.com/api');
   return 'https://stagev2.appletechlabs.com/api';
 };
