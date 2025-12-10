@@ -300,7 +300,7 @@ export const assistantAPI = {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        chatInput: chatInput,
+        input: chatInput,
         sessionId: sessionId
       })
     });
