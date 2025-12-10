@@ -729,12 +729,15 @@
         // Chat Management
         function createNewChat() {
             const chatId = 'chat_' + Date.now();
+            // Generate unique sessionId for N8N - this will be sent in API requests
+            const sessionId = chatId + '_' + Math.random().toString(36).substr(2, 9);
+            
             const newChat = {
                 id: chatId,
+                sessionId: sessionId,  // Store sessionId for N8N webhook
                 title: 'New Chat',
                 createdAt: new Date().toISOString(),
                 messages: [],
-                sessionId: 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
             };
             
             chats[chatId] = newChat;

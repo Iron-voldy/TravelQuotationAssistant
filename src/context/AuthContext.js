@@ -9,6 +9,7 @@ const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://stagev2.appletech
 const refreshAuthToken = async (currentToken) => {
   try {
     console.log('[TOKEN REFRESH] Attempting to refresh token...');
+    console.log('[TOKEN REFRESH] Using endpoint:', `${API_BASE_URL}/auth/refresh`);
     const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
       method: 'POST',
       headers: {
@@ -19,14 +20,18 @@ const refreshAuthToken = async (currentToken) => {
     });
 
     if (!response.ok) {
+      console.error('[TOKEN REFRESH] Server responded with status:', response.status);
       throw new Error(`Token refresh failed: ${response.status}`);
     }
 
     const data = await response.json();
-    console.log('[TOKEN REFRESH] Success! New token received');
+    console.log('[TOKEN REFRESH] Success! New token received:', {
+      hasAccessToken: !!data.access_token,
+      expiresIn: data.expires_in
+    });
     return data.access_token;
   } catch (error) {
-    console.error('[TOKEN REFRESH] Error:', error);
+    console.error('[TOKEN REFRESH] Error:', error.message);
     return null;
   }
 };
@@ -101,9 +106,12 @@ export const AuthProvider = ({ children }) => {
 
   const login = (userData, authToken, expiresIn = 3600) => {
     console.log('[AUTH] Logging in user:', userData.email);
+    console.log('[AUTH] Token expiration time:', expiresIn, 'seconds');
     localStorage.setItem('authToken', authToken);
     localStorage.setItem('user', JSON.stringify(userData));
     localStorage.setItem('tokenExpiresIn', expiresIn.toString());
+    localStorage.setItem('authTokenExpiry', Date.now() + (expiresIn * 1000));
+    console.log('[AUTH] Token stored with expiry at:', new Date(Date.now() + (expiresIn * 1000)).toISOString());
     
     setToken(authToken);
     setUser(userData);

@@ -205,7 +205,7 @@ const TravelQuotationPage = () => {
     localStorage.setItem('travel_chats', JSON.stringify(updatedChatsWithConfirm));
 
     try {
-      // Use auth token as sessionId
+      // Validate auth token
       if (!token) {
         console.error('[SEND MESSAGE] No auth token available!');
         setError('Authentication token missing. Please login again.');
@@ -213,14 +213,19 @@ const TravelQuotationPage = () => {
         return;
       }
 
+      // Generate unique sessionId for N8N webhook (use chatId for consistency)
+      const sessionId = chatId || `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
       console.log('[SEND MESSAGE] Chat ID:', chatId);
-      console.log('[SEND MESSAGE] Auth Token (sessionId):', token.substring(0, 20) + '...');
-      console.log('[SEND MESSAGE] Sending to webhook:', {
+      console.log('[SEND MESSAGE] Session ID for N8N:', sessionId);
+      console.log('[SEND MESSAGE] Auth Token present:', !!token);
+      console.log('[SEND MESSAGE] Sending to N8N webhook with:', {
         chatInput: trimmedMessage,
-        sessionId: token
+        sessionId: sessionId,
+        user: user?.email || 'unknown'
       });
 
-      const response = await assistantAPI.sendMessage(trimmedMessage, token);
+      const response = await assistantAPI.sendMessage(trimmedMessage, sessionId);
 
       let assistantMessage = '';
       let isSuccess = false;
