@@ -293,16 +293,29 @@ export const quotationAPI = {
 
 // Travel Assistant Webhook
 export const assistantAPI = {
-  sendMessage: async (chatInput, sessionId) => {
+  sendMessage: async (chatInput, sessionId, chatId) => {
+    const payload = {
+      chatInput: chatInput,
+      sessionId: sessionId
+    };
+
+    // Pass chatId for traceability if available
+    if (chatId) {
+      payload.chatId = chatId;
+    }
+
+    const webhookHeaders = {
+      'Content-Type': 'application/json'
+    };
+
+    if (sessionId) {
+      webhookHeaders['Authorization'] = `Bearer ${sessionId}`;
+    }
+
     const response = await fetch(WEBHOOK_URL, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        input: chatInput,
-        sessionId: sessionId
-      })
+      headers: webhookHeaders,
+      body: JSON.stringify(payload)
     });
 
     if (!response.ok) {

@@ -213,8 +213,8 @@ const TravelQuotationPage = () => {
         return;
       }
 
-      // Generate unique sessionId for N8N webhook (use chatId for consistency)
-      const sessionId = chatId || `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      // Use auth token as sessionId for n8n as required by backend
+      const sessionId = token;
 
       console.log('═══════════════════════════════════════════════════');
       console.log('📨 [SESSION ID] Generated Session ID:', sessionId);
@@ -230,7 +230,7 @@ const TravelQuotationPage = () => {
         user: user?.email || 'unknown'
       });
 
-      const response = await assistantAPI.sendMessage(trimmedMessage, sessionId);
+      const response = await assistantAPI.sendMessage(trimmedMessage, sessionId, chatId);
 
       let assistantMessage = '';
       let isSuccess = false;
@@ -257,6 +257,9 @@ const TravelQuotationPage = () => {
       } else if (response.refno) {
         quotationNo = response.refno;
         isSuccess = true;
+      } else if (response.id) {
+        quotationNo = response.id;
+        isSuccess = true;
       } else if (response.quotation_number) {
         quotationNo = response.quotation_number;
         isSuccess = true;
@@ -272,6 +275,9 @@ const TravelQuotationPage = () => {
           isSuccess = true;
         } else if (firstItem.refno) {
           quotationNo = firstItem.refno;
+          isSuccess = true;
+        } else if (firstItem.id) {
+          quotationNo = firstItem.id;
           isSuccess = true;
         }
       }
