@@ -56,16 +56,23 @@ export const AuthProvider = ({ children }) => {
     console.log(`[AUTH] Token refresh scheduled in ${Math.round(refreshTime / 1000)}s`);
 
     refreshTimeoutRef.current = setTimeout(async () => {
-      console.log('[AUTH] Token refresh timer triggered');
+      console.log('🔄 ═══════════════════════════════════════════════════');
+      console.log('🔄 [TOKEN REFRESH] Timer triggered - refreshing token...');
+      console.log('🔄 [TOKEN REFRESH] Old Token:', currentToken);
+      console.log('🔄 ═══════════════════════════════════════════════════');
       const newToken = await refreshAuthToken(currentToken);
       if (newToken) {
+        console.log('✅ ═══════════════════════════════════════════════════');
+        console.log('✅ [TOKEN REFRESH] Token refreshed successfully!');
+        console.log('✅ [TOKEN REFRESH] New Token:', newToken);
+        console.log('✅ ═══════════════════════════════════════════════════');
         localStorage.setItem('authToken', newToken);
         setToken(newToken);
         // Reset the timer for the new token (assuming new token also expires in 3600s)
         setupTokenRefreshTimer(3600, newToken);
       } else {
         // If refresh fails, logout
-        console.error('[AUTH] Token refresh failed, logging out');
+        console.error('❌ [TOKEN REFRESH] Token refresh failed, logging out');
         logout();
       }
     }, refreshTime);
@@ -105,8 +112,11 @@ export const AuthProvider = ({ children }) => {
   }, [setupTokenRefreshTimer]);
 
   const login = (userData, authToken, expiresIn = 3600) => {
-    console.log('[AUTH] Logging in user:', userData.email);
-    console.log('[AUTH] Token expiration time:', expiresIn, 'seconds');
+    console.log('🔐 ═══════════════════════════════════════════════════');
+    console.log('🔐 [LOGIN] User logged in:', userData.email);
+    console.log('🔐 [LOGIN] Session ID (Auth Token):', authToken);
+    console.log('🔐 [LOGIN] Token expiration time:', expiresIn, 'seconds');
+    console.log('🔐 ═══════════════════════════════════════════════════');
     localStorage.setItem('authToken', authToken);
     localStorage.setItem('user', JSON.stringify(userData));
     localStorage.setItem('tokenExpiresIn', expiresIn.toString());

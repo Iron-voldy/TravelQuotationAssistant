@@ -216,6 +216,11 @@ const TravelQuotationPage = () => {
       // Generate unique sessionId for N8N webhook (use chatId for consistency)
       const sessionId = chatId || `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
+      console.log('═══════════════════════════════════════════════════');
+      console.log('📨 [SESSION ID] Generated Session ID:', sessionId);
+      console.log('🔑 [AUTH TOKEN] Current Token:', token);
+      console.log('✅ [AUTH TOKEN] Token present:', !!token);
+      console.log('═══════════════════════════════════════════════════');
       console.log('[SEND MESSAGE] Chat ID:', chatId);
       console.log('[SEND MESSAGE] Session ID for N8N:', sessionId);
       console.log('[SEND MESSAGE] Auth Token present:', !!token);

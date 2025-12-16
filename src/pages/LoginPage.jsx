@@ -91,6 +91,11 @@ const LoginPage = () => {
         const authToken = response.access_token || response.token;
         const expiresIn = response.expires_in || 3600;
 
+        console.log('🎉 ═══════════════════════════════════════════════════');
+        console.log('🎉 [LOGIN SUCCESS] Session ID received:', authToken);
+        console.log('🎉 [LOGIN SUCCESS] Token expires in:', expiresIn, 'seconds');
+        console.log('🎉 ═══════════════════════════════════════════════════');
+
         if (authToken) {
           login(userData, authToken, expiresIn);
           navigate('/assistant');
