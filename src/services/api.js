@@ -294,12 +294,13 @@ export const quotationAPI = {
 // Travel Assistant Webhook
 export const assistantAPI = {
   sendMessage: async (chatInput, sessionId, chatId) => {
+    // n8n expects sessionId + chatInput; send both chatInput and input for compatibility
     const payload = {
       chatInput: chatInput,
+      input: chatInput,
       sessionId: sessionId
     };
 
-    // Pass chatId for traceability if available
     if (chatId) {
       payload.chatId = chatId;
     }
