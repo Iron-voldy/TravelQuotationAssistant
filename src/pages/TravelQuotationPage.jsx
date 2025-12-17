@@ -241,70 +241,94 @@ const TravelQuotationPage = () => {
       console.log('Response Keys:', response ? Object.keys(response) : 'null');
       console.log('Full Response:', JSON.stringify(response, null, 2));
 
-      // Check for quotation number in response - check multiple possible locations
-      if (response.quotation_no) {
-        quotationNo = response.quotation_no;
-        isSuccess = true;
-      } else if (response.body && response.body.quotation_no) {
-        quotationNo = response.body.quotation_no;
-        isSuccess = true;
-      } else if (response.reference_id) {
-        quotationNo = response.reference_id;
-        isSuccess = true;
-      } else if (response.request_no) {
-        quotationNo = response.request_no;
-        isSuccess = true;
-      } else if (response.refno) {
-        quotationNo = response.refno;
-        isSuccess = true;
-      } else if (response.id) {
-        quotationNo = response.id;
-        isSuccess = true;
-      } else if (response.quotation_number) {
-        quotationNo = response.quotation_number;
-        isSuccess = true;
-      } else if (Array.isArray(response) && response.length > 0) {
-        // Handle if response is an array
-        const firstItem = response[0];
-        console.log('First item in array:', firstItem);
-        if (firstItem.quotation_no) {
-          quotationNo = firstItem.quotation_no;
+      // n8n returns: { quotation_no: "123", status: "success", message: "..." }
+      // CRITICAL: Extract quotation_no with strict validation
+      if (response && response.quotation_no && response.quotation_no !== '') {
+        // Ensure it's a string, trim, and validate it's numeric (not random)
+        const qNo = String(response.quotation_no).trim();
+        // Check: not "null", not "undefined", is numeric, and length > 3 (reasonable quotation ID)
+        if (qNo && qNo !== 'null' && qNo !== 'undefined' && /^\d+$/.test(qNo) && qNo.length > 2) {
+          quotationNo = qNo;
           isSuccess = true;
-        } else if (firstItem.reference_id) {
-          quotationNo = firstItem.reference_id;
+          console.log('✅ [QUOTATION EXTRACTED] Valid quotation_no:', quotationNo, '(length:', qNo.length + ')');
+        } else {
+          console.warn('⚠️ [QUOTATION INVALID] quotation_no failed validation:', response.quotation_no, 'type:', typeof qNo, 'regex test:', /^\d+$/.test(qNo));
+        }
+      }
+
+      // Check alternate locations only if primary extraction failed
+      if (!quotationNo) {
+        if (response.body && response.body.quotation_no) {
+          quotationNo = response.body.quotation_no;
           isSuccess = true;
-        } else if (firstItem.refno) {
-          quotationNo = firstItem.refno;
+        } else if (response.reference_id) {
+          quotationNo = response.reference_id;
           isSuccess = true;
-        } else if (firstItem.id) {
-          quotationNo = firstItem.id;
+        } else if (response.request_no) {
+          quotationNo = response.request_no;
           isSuccess = true;
+        } else if (response.refno) {
+          quotationNo = response.refno;
+          isSuccess = true;
+        } else if (response.id) {
+          quotationNo = response.id;
+          isSuccess = true;
+        } else if (response.quotation_number) {
+          quotationNo = response.quotation_number;
+          isSuccess = true;
+        } else if (Array.isArray(response) && response.length > 0) {
+          const firstItem = response[0];
+          console.log('First item in array:', firstItem);
+          if (firstItem.quotation_no) {
+            quotationNo = firstItem.quotation_no;
+            isSuccess = true;
+          } else if (firstItem.reference_id) {
+            quotationNo = firstItem.reference_id;
+            isSuccess = true;
+          } else if (firstItem.refno) {
+            quotationNo = firstItem.refno;
+            isSuccess = true;
+          } else if (firstItem.id) {
+            quotationNo = firstItem.id;
+            isSuccess = true;
+          }
         }
       }
 
       // Handle webhook response
       if (quotationNo) {
-        // SUCCESS: Found quotation number
+        // SUCCESS: Found and validated quotation number
+        console.log('✅ [SUCCESS] Quotation created:', quotationNo);
         assistantMessage = `Your Request Has Been Created\n\nYour Request No is ${quotationNo}\n\nOur team will review your travel request and send you a detailed quote shortly. Thank you for choosing our services.`;
         isSuccess = true;
+      } else if (response && response.status === 'success' && response.message) {
+        // Webhook succeeded but no valid quotation number - backend issue
+        console.warn('⚠️ [WARNING] Status success but no valid quotation_no');
+        assistantMessage = 'Request created but unable to retrieve booking number. Please contact support.';
+        isSuccess = false;
       } else if (response.error) {
         // ERROR: Webhook returned error field
+        console.error('❌ [ERROR] Webhook error:', response.error);
         assistantMessage = response.error;
         isSuccess = false;
       } else if (response.success === false) {
         // ERROR: Webhook indicated failure
+        console.error('❌ [ERROR] Webhook failure:', response);
         assistantMessage = response.output || response.message || 'Oops! Something went wrong. Please contact the technical team.';
         isSuccess = false;
       } else if (response.output) {
         // No quotation number but has output - treat as error
+        console.warn('⚠️ [WARNING] Output but no quotation_no:', response);
         assistantMessage = 'Oops! Something went wrong. Please contact the technical team.';
         isSuccess = false;
-      } else if (response.message) {
+      } else if (response.message && !quotationNo) {
         // No quotation number but has message - treat as error
+        console.warn('⚠️ [WARNING] Message but no quotation_no:', response);
         assistantMessage = 'Oops! Something went wrong. Please contact the technical team.';
         isSuccess = false;
       } else {
-        // No quotation number and no recognizable fields - error
+        // Unrecognized response structure
+        console.error('❌ [ERROR] Unrecognized response structure:', response);
         assistantMessage = 'Oops! Something went wrong. Please contact the technical team.';
         isSuccess = false;
       }
