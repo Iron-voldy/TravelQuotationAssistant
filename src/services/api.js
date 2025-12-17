@@ -286,12 +286,14 @@ export const quotationAPI = {
 // Travel Assistant Webhook with fallback
 export const assistantAPI = {
   sendMessage: async (chatInput, sessionId, chatId) => {
-    // Simplified payload matching n8n workflow expectations
-    // The workflow only needs chatInput and sessionId in the body
-    const payload = {
-      chatInput: chatInput,
-      sessionId: sessionId
-    };
+    // n8n expects an ARRAY format as per developer specification
+    // Format: [{ "chatInput": "...", "action": "sendMessage" }]
+    const payload = [
+      {
+        chatInput: chatInput,
+        action: "sendMessage"
+      }
+    ];
 
     // Simple headers - just Content-Type
     // n8n webhook doesn't need auth headers as sessionId is in the payload
