@@ -27,9 +27,12 @@ const getApiBaseUrl = () => {
 };
 
 const API_BASE_URL = getApiBaseUrl();
-const WEBHOOK_URL = process.env.REACT_APP_WEBHOOK_URL || 'https://aahaas-ai.app.n8n.cloud/webhook/085ddfb8-f53a-456e-b662-85de50da8147';
+const DEFAULT_WEBHOOK_URL = 'https://aahaas-ai.app.n8n.cloud/webhook/d7aa38a3-c48f-4c89-b557-292512a35342';
+const LEGACY_WEBHOOK_URL = 'https://aahaas-ai.app.n8n.cloud/webhook/085ddfb8-f53a-456e-b662-85de50da8147';
+const WEBHOOK_URL = process.env.REACT_APP_WEBHOOK_URL || DEFAULT_WEBHOOK_URL;
 
 console.log('[API CONFIG] Base URL:', API_BASE_URL);
+console.log('[API CONFIG] Webhook URL:', WEBHOOK_URL, process.env.REACT_APP_WEBHOOK_URL ? '(env override)' : '(default)');
 
 // Helper function to get auth token
 const getAuthToken = () => {
@@ -311,6 +314,8 @@ export const assistantAPI = {
 
     if (sessionId) {
       webhookHeaders['Authorization'] = `Bearer ${sessionId}`;
+      webhookHeaders['X-Session-Id'] = sessionId;
+      webhookHeaders['X-Auth-Token'] = sessionId;
     }
 
     const response = await fetch(WEBHOOK_URL, {
