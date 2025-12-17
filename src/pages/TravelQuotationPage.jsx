@@ -5,7 +5,7 @@ import { assistantAPI } from '../services/api';
 import './TravelQuotationPage.css';
 
 const TravelQuotationPage = () => {
-  const { user, token, logout } = useAuth(); // Get token from auth context
+  const { user, token, sessionId, logout } = useAuth(); // Get token and stable sessionId
   const navigate = useNavigate();
 
   const [currentChatId, setCurrentChatId] = useState(null);
@@ -213,24 +213,24 @@ const TravelQuotationPage = () => {
         return;
       }
 
-      // Use auth token as sessionId for n8n as required by backend
-      const sessionId = token;
+      // Keep original sessionId stable for n8n; fallback to token if missing
+      const effectiveSessionId = sessionId || token;
 
       console.log('═══════════════════════════════════════════════════');
-      console.log('📨 [SESSION ID] Generated Session ID:', sessionId);
+      console.log('📨 [SESSION ID] Generated Session ID:', effectiveSessionId);
       console.log('🔑 [AUTH TOKEN] Current Token:', token);
       console.log('✅ [AUTH TOKEN] Token present:', !!token);
       console.log('═══════════════════════════════════════════════════');
       console.log('[SEND MESSAGE] Chat ID:', chatId);
-      console.log('[SEND MESSAGE] Session ID for N8N:', sessionId);
+      console.log('[SEND MESSAGE] Session ID for N8N:', effectiveSessionId);
       console.log('[SEND MESSAGE] Auth Token present:', !!token);
       console.log('[SEND MESSAGE] Sending to N8N webhook with:', {
         chatInput: trimmedMessage,
-        sessionId: sessionId,
+        sessionId: effectiveSessionId,
         user: user?.email || 'unknown'
       });
 
-      const response = await assistantAPI.sendMessage(trimmedMessage, sessionId, chatId);
+      const response = await assistantAPI.sendMessage(trimmedMessage, effectiveSessionId, chatId);
 
       let assistantMessage = '';
       let isSuccess = false;

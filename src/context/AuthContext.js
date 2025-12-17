@@ -40,6 +40,7 @@ export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
+  const [sessionId, setSessionId] = useState(null); // Stable session identifier for n8n
   const [isLoading, setIsLoading] = useState(true);
   const [expiresIn, setExpiresIn] = useState(null);
   const refreshTimeoutRef = useRef(null);
@@ -81,12 +82,14 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     // Check if user is logged in (from localStorage)
     const storedToken = localStorage.getItem('authToken');
+    const storedSessionId = localStorage.getItem('sessionId');
     const storedUser = localStorage.getItem('user');
     const storedExpiresIn = localStorage.getItem('tokenExpiresIn');
 
-    if (storedToken && storedUser) {
+    if (storedToken && storedSessionId && storedUser) {
       try {
         setToken(storedToken);
+        setSessionId(storedSessionId);
         setUser(JSON.parse(storedUser));
         setIsAuthenticated(true);
         
@@ -118,12 +121,14 @@ export const AuthProvider = ({ children }) => {
     console.log('🔐 [LOGIN] Token expiration time:', expiresIn, 'seconds');
     console.log('🔐 ═══════════════════════════════════════════════════');
     localStorage.setItem('authToken', authToken);
+    localStorage.setItem('sessionId', authToken); // keep original token as session id
     localStorage.setItem('user', JSON.stringify(userData));
     localStorage.setItem('tokenExpiresIn', expiresIn.toString());
     localStorage.setItem('authTokenExpiry', Date.now() + (expiresIn * 1000));
     console.log('[AUTH] Token stored with expiry at:', new Date(Date.now() + (expiresIn * 1000)).toISOString());
     
     setToken(authToken);
+    setSessionId(authToken);
     setUser(userData);
     setExpiresIn(expiresIn);
     setIsAuthenticated(true);
@@ -152,6 +157,7 @@ export const AuthProvider = ({ children }) => {
     isAuthenticated,
     user,
     token,
+    sessionId,
     isLoading,
     expiresIn,
     login,
