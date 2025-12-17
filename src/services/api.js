@@ -286,14 +286,13 @@ export const quotationAPI = {
 // Travel Assistant Webhook with fallback
 export const assistantAPI = {
   sendMessage: async (chatInput, sessionId, chatId) => {
-    // n8n expects an ARRAY format as per developer specification
-    // Format: [{ "chatInput": "...", "action": "sendMessage" }]
-    const payload = [
-      {
-        chatInput: chatInput,
-        action: "sendMessage"
-      }
-    ];
+    // n8n workflow expects OBJECT format based on pinData in workflow file
+    // The workflow's "Code in JavaScript" node adds action="sendMessage" automatically
+    // Format matches: { "chatInput": "...", "sessionId": "..." }
+    const payload = {
+      chatInput: chatInput,
+      sessionId: sessionId
+    };
 
     // Simple headers - just Content-Type
     // n8n webhook doesn't need auth headers as sessionId is in the payload
@@ -301,24 +300,18 @@ export const assistantAPI = {
       'Content-Type': 'application/json'
     };
 
-    const tryWebhook = async (url, label, timeoutMs = 120000) => {
+    const tryWebhook = async (url, label) => {
       console.log(`[WEBHOOK] Sending to (${label}):`, url);
       console.log('[WEBHOOK] Payload:', JSON.stringify(payload));
       console.log('[WEBHOOK] Headers:', webhookHeaders);
 
       try {
-        // Create an abort controller for timeout
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
+        // No timeout - n8n requests can take 3+ minutes
         const resp = await fetch(url, {
           method: 'POST',
           headers: webhookHeaders,
-          body: JSON.stringify(payload),
-          signal: controller.signal
+          body: JSON.stringify(payload)
         });
-
-        clearTimeout(timeoutId);
 
         const contentType = resp.headers.get('content-type');
         const text = await resp.text();
@@ -354,24 +347,20 @@ export const assistantAPI = {
         console.log(`[WEBHOOK] Non-JSON response received (${label})`);
         return null;
       } catch (error) {
-        if (error.name === 'AbortError') {
-          console.error(`[WEBHOOK] Request timeout (${label}) after ${timeoutMs}ms`);
-          return null;
-        }
         console.error(`[WEBHOOK] Request failed (${label}):`, error.message);
         return null;
       }
     };
 
     console.log('[WEBHOOK] Attempting primary webhook...');
-    const primaryResp = await tryWebhook(WEBHOOK_URL, 'primary', 120000);
+    const primaryResp = await tryWebhook(WEBHOOK_URL, 'primary');
     if (primaryResp) {
       console.log('[WEBHOOK] Primary webhook succeeded');
       return primaryResp;
     }
 
-    console.warn('[WEBHOOK] Primary returned empty/null/timeout. Falling back to legacy URL...');
-    const legacyResp = await tryWebhook(LEGACY_WEBHOOK_URL, 'legacy', 120000);
+    console.warn('[WEBHOOK] Primary returned empty/null. Falling back to legacy URL...');
+    const legacyResp = await tryWebhook(LEGACY_WEBHOOK_URL, 'legacy');
     if (legacyResp) {
       console.log('[WEBHOOK] Legacy webhook succeeded');
       return legacyResp;
@@ -379,7 +368,7 @@ export const assistantAPI = {
 
     console.error('[WEBHOOK] Both webhooks failed. Returning error response.');
     return {
-      error: 'The AI assistant is temporarily unavailable. This could be due to:\n\n1. The n8n workflow is not responding (check n8n execution logs)\n2. The workflow execution is timing out (> 120 seconds)\n3. The webhook URL may have changed\n\nPlease check the n8n workflow status and logs.',
+      error: 'The AI assistant is temporarily unavailable. This could be due to:\n\n1. The n8n workflow is not responding (check n8n execution logs)\n2. There may be an error in the workflow execution\n3. The webhook URL may have changed\n\nPlease check the n8n workflow status and logs.',
       success: false,
       details: 'Both primary and legacy webhook endpoints failed to respond'
     };
