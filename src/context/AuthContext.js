@@ -67,8 +67,11 @@ export const AuthProvider = ({ children }) => {
         console.log('✅ [TOKEN REFRESH] Token refreshed successfully!');
         console.log('✅ [TOKEN REFRESH] New Token:', newToken);
         console.log('✅ ═══════════════════════════════════════════════════');
+        // Update both auth token and sessionId so n8n receives the fresh token
         localStorage.setItem('authToken', newToken);
+        localStorage.setItem('sessionId', newToken);
         setToken(newToken);
+        setSessionId(newToken);
         // Reset the timer for the new token (assuming new token also expires in 3600s)
         setupTokenRefreshTimer(3600, newToken);
       } else {
@@ -82,7 +85,7 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     // Check if user is logged in (from localStorage)
     const storedToken = localStorage.getItem('authToken');
-    const storedSessionId = localStorage.getItem('sessionId');
+    const storedSessionId = localStorage.getItem('sessionId') || storedToken; // fallback to token if legacy
     const storedUser = localStorage.getItem('user');
     const storedExpiresIn = localStorage.getItem('tokenExpiresIn');
 
@@ -144,13 +147,15 @@ export const AuthProvider = ({ children }) => {
       clearTimeout(refreshTimeoutRef.current);
     }
 
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('user');
-    localStorage.removeItem('tokenExpiresIn');
-    setToken(null);
-    setUser(null);
-    setExpiresIn(null);
-    setIsAuthenticated(false);
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('sessionId'); // Clear sessionId on logout
+      localStorage.removeItem('user');
+      localStorage.removeItem('tokenExpiresIn');
+      setToken(null);
+      setSessionId(null);
+      setUser(null);
+      setExpiresIn(null);
+      setIsAuthenticated(false);
   };
 
   const value = {
