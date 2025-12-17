@@ -8,84 +8,86 @@
 // Override with REACT_APP_API_URL environment variable if needed
 
 // Determine which API URL to use based on environment
-const getApiBaseUrl = () => {
-  // Check if explicitly set in environment
-  if (process.env.REACT_APP_API_URL) {
-    console.log('[API] Using custom API URL:', process.env.REACT_APP_API_URL);
-    return process.env.REACT_APP_API_URL;
-  }
+// Travel Assistant Webhook
+export const assistantAPI = {
+  sendMessage: async (chatInput, sessionId, chatId) => {
+    const payload = {
+      chatInput: chatInput,
+      input: chatInput,
+      sessionId: sessionId,
+      action: 'sendMessage',
+      chatId: chatId
+    };
 
-  // Development: Use local proxy (setupProxy.js)
-  if (process.env.NODE_ENV === 'development') {
-    console.log('[API] Using local development proxy via setupProxy.js');
-    return '/api'; // This will be proxied to https://stagev2.appletechlabs.com/api
-  }
+    const webhookHeaders = {
+      'Content-Type': 'application/json'
+    };
 
-  // Production: Direct backend connection (or use proxy if REACT_APP_API_URL is set)
-  console.log('[API] Using production backend: https://stagev2.appletechlabs.com/api');
-  return 'https://stagev2.appletechlabs.com/api';
-};
-
-const API_BASE_URL = getApiBaseUrl();
-const DEFAULT_WEBHOOK_URL = 'https://aahaas-ai.app.n8n.cloud/webhook/085ddfb8-f53a-456e-b662-85de50da8147';
-const LEGACY_WEBHOOK_URL = 'https://aahaas-ai.app.n8n.cloud/webhook/d7aa38a3-c48f-4c89-b557-292512a35342';
-const WEBHOOK_URL = process.env.REACT_APP_WEBHOOK_URL || DEFAULT_WEBHOOK_URL;
-
-console.log('[API CONFIG] Base URL:', API_BASE_URL);
-console.log('[API CONFIG] Webhook URL:', WEBHOOK_URL, process.env.REACT_APP_WEBHOOK_URL ? '(env override)' : '(default)');
-
-// Helper function to get auth token
-const getAuthToken = () => {
-  return localStorage.getItem('authToken');
-};
-
-// Helper function to create headers
-const createHeaders = (includeAuth = false) => {
-  const headers = {
-    'Accept': 'application/json',
-    'Content-Type': 'application/json'
-  };
-
-  if (includeAuth) {
-    const token = getAuthToken();
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
+    if (sessionId) {
+      webhookHeaders['Authorization'] = `Bearer ${sessionId}`;
+      webhookHeaders['X-Session-Id'] = sessionId;
+      webhookHeaders['X-Auth-Token'] = sessionId;
     }
-  }
 
-  return headers;
-};
+    const tryWebhook = async (url, label) => {
+      console.log(`[WEBHOOK] Sending to (${label}):`, url);
+      console.log('[WEBHOOK] Payload:', JSON.stringify(payload));
+      console.log('[WEBHOOK] Headers:', webhookHeaders);
 
-// Authentication APIs
-export const authAPI = {
-  login: async (email, password) => {
-    const formData = new FormData();
-    formData.append('email', email);
-    formData.append('password', password);
-
-    console.log('[LOGIN] Attempting login with:', { email });
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+      const resp = await fetch(url, {
         method: 'POST',
-        headers: {
-          'Accept': 'application/json'
-          // Don't set Content-Type - browser will set it automatically with boundary for FormData
-        },
-        body: formData
+        headers: webhookHeaders,
+        body: JSON.stringify(payload)
       });
 
-      console.log('[RESPONSE] Status:', response.status, response.statusText);
+      const contentType = resp.headers.get('content-type');
+      const text = await resp.text();
 
-      if (!response.ok) {
-        let errorMessage = 'Login failed';
+      console.log(`[WEBHOOK] Response Status (${label}):`, resp.status);
+      console.log(`[WEBHOOK] Content-Type (${label}):`, contentType);
+      console.log(`[WEBHOOK] Response Text (${label}):`, text);
+      console.log(`[WEBHOOK] Response Text Length (${label}):`, text?.length);
 
+      if (!resp.ok) {
+        throw new Error(`HTTP error from ${label}! status: ${resp.status}`);
+      }
+
+      if (!text || text.trim() === '') {
+        console.error(`[WEBHOOK] Empty response from ${label}`);
+        return null;
+      }
+
+      if (contentType && contentType.includes('application/json')) {
         try {
-          const error = await response.json();
-          console.log('API Error Response:', error);
+          const jsonResponse = JSON.parse(text);
+          console.log(`[WEBHOOK] Parsed JSON Response (${label}):`, jsonResponse);
+          console.log(`[WEBHOOK] Response Keys (${label}):`, Object.keys(jsonResponse));
+          return jsonResponse;
+        } catch (e) {
+          console.error(`[WEBHOOK] JSON parse error (${label}):`, e);
+          console.error(`[WEBHOOK] Failed to parse text (${label}):`, text);
+          return null;
+        }
+      }
 
-          // Handle Laravel validation errors
-          if (error.errors) {
+      console.log(`[WEBHOOK] Non-JSON response received (${label})`);
+      return null;
+    };
+
+    // Try primary URL first; if empty, fallback to legacy
+    const primaryResp = await tryWebhook(WEBHOOK_URL, 'primary');
+    if (primaryResp) return primaryResp;
+
+    console.warn('[WEBHOOK] Primary returned empty/non-JSON. Falling back to legacy URL.');
+    const legacyResp = await tryWebhook(LEGACY_WEBHOOK_URL, 'legacy');
+    if (legacyResp) return legacyResp;
+
+    return {
+      error: 'Oops! Something went wrong. Please contact the technical team.',
+      success: false
+    };
+  }
+};
             const validationErrors = Object.values(error.errors).flat();
             errorMessage = validationErrors.join(', ');
           } else if (error.message) {
