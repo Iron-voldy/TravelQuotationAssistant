@@ -294,12 +294,10 @@ export const assistantAPI = {
       sessionId: sessionId
     };
 
-    // Headers with Bearer token for n8n to use when calling backend API
-    // The sessionId (JWT token) is sent both in payload and as Authorization header
-    // so n8n can use it for authenticated API calls to the backend
+    // Simple headers - just Content-Type
+    // The sessionId is in the payload, n8n workflow extracts and uses it internally
     const webhookHeaders = {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${sessionId}`
+      'Content-Type': 'application/json'
     };
 
     const tryWebhook = async (url, label) => {
