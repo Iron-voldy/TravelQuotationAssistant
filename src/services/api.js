@@ -286,25 +286,20 @@ export const quotationAPI = {
 // Travel Assistant Webhook with fallback
 export const assistantAPI = {
   sendMessage: async (chatInput, sessionId, chatId) => {
+    // Simplified payload matching n8n workflow expectations
+    // The workflow only needs chatInput and sessionId in the body
     const payload = {
       chatInput: chatInput,
-      input: chatInput,
-      sessionId: sessionId,
-      action: 'sendMessage',
-      chatId: chatId
+      sessionId: sessionId
     };
 
+    // Simple headers - just Content-Type
+    // n8n webhook doesn't need auth headers as sessionId is in the payload
     const webhookHeaders = {
       'Content-Type': 'application/json'
     };
 
-    if (sessionId) {
-      webhookHeaders['Authorization'] = `Bearer ${sessionId}`;
-      webhookHeaders['X-Session-Id'] = sessionId;
-      webhookHeaders['X-Auth-Token'] = sessionId;
-    }
-
-    const tryWebhook = async (url, label, timeoutMs = 60000) => {
+    const tryWebhook = async (url, label, timeoutMs = 120000) => {
       console.log(`[WEBHOOK] Sending to (${label}):`, url);
       console.log('[WEBHOOK] Payload:', JSON.stringify(payload));
       console.log('[WEBHOOK] Headers:', webhookHeaders);
@@ -367,14 +362,14 @@ export const assistantAPI = {
     };
 
     console.log('[WEBHOOK] Attempting primary webhook...');
-    const primaryResp = await tryWebhook(WEBHOOK_URL, 'primary', 60000);
+    const primaryResp = await tryWebhook(WEBHOOK_URL, 'primary', 120000);
     if (primaryResp) {
       console.log('[WEBHOOK] Primary webhook succeeded');
       return primaryResp;
     }
 
     console.warn('[WEBHOOK] Primary returned empty/null/timeout. Falling back to legacy URL...');
-    const legacyResp = await tryWebhook(LEGACY_WEBHOOK_URL, 'legacy', 60000);
+    const legacyResp = await tryWebhook(LEGACY_WEBHOOK_URL, 'legacy', 120000);
     if (legacyResp) {
       console.log('[WEBHOOK] Legacy webhook succeeded');
       return legacyResp;
@@ -382,7 +377,7 @@ export const assistantAPI = {
 
     console.error('[WEBHOOK] Both webhooks failed. Returning error response.');
     return {
-      error: 'The AI assistant is temporarily unavailable. This could be due to:\n\n1. The n8n workflow is not responding (check n8n execution logs)\n2. The workflow execution is timing out (> 60 seconds)\n3. The webhook URL may have changed\n\nPlease check the n8n workflow status and logs.',
+      error: 'The AI assistant is temporarily unavailable. This could be due to:\n\n1. The n8n workflow is not responding (check n8n execution logs)\n2. The workflow execution is timing out (> 120 seconds)\n3. The webhook URL may have changed\n\nPlease check the n8n workflow status and logs.',
       success: false,
       details: 'Both primary and legacy webhook endpoints failed to respond'
     };
