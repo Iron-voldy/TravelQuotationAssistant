@@ -8,86 +8,79 @@
 // Override with REACT_APP_API_URL environment variable if needed
 
 // Determine which API URL to use based on environment
-// Travel Assistant Webhook
-export const assistantAPI = {
-  sendMessage: async (chatInput, sessionId, chatId) => {
-    const payload = {
-      chatInput: chatInput,
-      input: chatInput,
-      sessionId: sessionId,
-      action: 'sendMessage',
-      chatId: chatId
-    };
+const getApiBaseUrl = () => {
+  if (process.env.REACT_APP_API_URL) {
+    console.log('[API] Using custom API URL:', process.env.REACT_APP_API_URL);
+    return process.env.REACT_APP_API_URL;
+  }
 
-    const webhookHeaders = {
-      'Content-Type': 'application/json'
-    };
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[API] Using local development proxy via setupProxy.js');
+    return '/api';
+  }
 
-    if (sessionId) {
-      webhookHeaders['Authorization'] = `Bearer ${sessionId}`;
-      webhookHeaders['X-Session-Id'] = sessionId;
-      webhookHeaders['X-Auth-Token'] = sessionId;
+  console.log('[API] Using production backend: https://stagev2.appletechlabs.com/api');
+  return 'https://stagev2.appletechlabs.com/api';
+};
+
+const API_BASE_URL = getApiBaseUrl();
+const DEFAULT_WEBHOOK_URL = 'https://aahaas-ai.app.n8n.cloud/webhook/085ddfb8-f53a-456e-b662-85de50da8147';
+const LEGACY_WEBHOOK_URL = 'https://aahaas-ai.app.n8n.cloud/webhook/d7aa38a3-c48f-4c89-b557-292512a35342';
+const WEBHOOK_URL = process.env.REACT_APP_WEBHOOK_URL || DEFAULT_WEBHOOK_URL;
+
+console.log('[API CONFIG] Base URL:', API_BASE_URL);
+console.log('[API CONFIG] Webhook URL:', WEBHOOK_URL, process.env.REACT_APP_WEBHOOK_URL ? '(env override)' : '(default)');
+
+// Helper function to get auth token
+const getAuthToken = () => {
+  return localStorage.getItem('authToken');
+};
+
+// Helper function to create headers
+const createHeaders = (includeAuth = false) => {
+  const headers = {
+    'Accept': 'application/json',
+    'Content-Type': 'application/json'
+  };
+
+  if (includeAuth) {
+    const token = getAuthToken();
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
     }
+  }
 
-    const tryWebhook = async (url, label) => {
-      console.log(`[WEBHOOK] Sending to (${label}):`, url);
-      console.log('[WEBHOOK] Payload:', JSON.stringify(payload));
-      console.log('[WEBHOOK] Headers:', webhookHeaders);
+  return headers;
+};
 
-      const resp = await fetch(url, {
+// Authentication APIs
+export const authAPI = {
+  login: async (email, password) => {
+    const formData = new FormData();
+    formData.append('email', email);
+    formData.append('password', password);
+
+    console.log('[LOGIN] Attempting login with:', { email });
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
-        headers: webhookHeaders,
-        body: JSON.stringify(payload)
+        headers: {
+          'Accept': 'application/json'
+        },
+        body: formData
       });
 
-      const contentType = resp.headers.get('content-type');
-      const text = await resp.text();
+      console.log('[RESPONSE] Status:', response.status, response.statusText);
 
-      console.log(`[WEBHOOK] Response Status (${label}):`, resp.status);
-      console.log(`[WEBHOOK] Content-Type (${label}):`, contentType);
-      console.log(`[WEBHOOK] Response Text (${label}):`, text);
-      console.log(`[WEBHOOK] Response Text Length (${label}):`, text?.length);
+      if (!response.ok) {
+        let errorMessage = 'Login failed';
 
-      if (!resp.ok) {
-        throw new Error(`HTTP error from ${label}! status: ${resp.status}`);
-      }
-
-      if (!text || text.trim() === '') {
-        console.error(`[WEBHOOK] Empty response from ${label}`);
-        return null;
-      }
-
-      if (contentType && contentType.includes('application/json')) {
         try {
-          const jsonResponse = JSON.parse(text);
-          console.log(`[WEBHOOK] Parsed JSON Response (${label}):`, jsonResponse);
-          console.log(`[WEBHOOK] Response Keys (${label}):`, Object.keys(jsonResponse));
-          return jsonResponse;
-        } catch (e) {
-          console.error(`[WEBHOOK] JSON parse error (${label}):`, e);
-          console.error(`[WEBHOOK] Failed to parse text (${label}):`, text);
-          return null;
-        }
-      }
+          const error = await response.json();
+          console.log('API Error Response:', error);
 
-      console.log(`[WEBHOOK] Non-JSON response received (${label})`);
-      return null;
-    };
-
-    // Try primary URL first; if empty, fallback to legacy
-    const primaryResp = await tryWebhook(WEBHOOK_URL, 'primary');
-    if (primaryResp) return primaryResp;
-
-    console.warn('[WEBHOOK] Primary returned empty/non-JSON. Falling back to legacy URL.');
-    const legacyResp = await tryWebhook(LEGACY_WEBHOOK_URL, 'legacy');
-    if (legacyResp) return legacyResp;
-
-    return {
-      error: 'Oops! Something went wrong. Please contact the technical team.',
-      success: false
-    };
-  }
-};
+          if (error.errors) {
             const validationErrors = Object.values(error.errors).flat();
             errorMessage = validationErrors.join(', ');
           } else if (error.message) {
@@ -100,7 +93,6 @@ export const assistantAPI = {
             errorMessage = JSON.stringify(error);
           }
         } catch (e) {
-          // If response is not JSON
           if (response.status === 401) {
             errorMessage = 'Invalid email or password';
           } else {
@@ -114,7 +106,6 @@ export const assistantAPI = {
 
       return await response.json();
     } catch (error) {
-      // Only show connection error if it's actually a connection error
       if (error.name === 'TypeError' && error.message === 'Failed to fetch') {
         throw new Error('Cannot connect to backend server. Please check:\n1. Backend server is running at: ' + API_BASE_URL + '\n2. CORS is enabled on the backend\n3. Your internet connection is working');
       }
@@ -136,7 +127,6 @@ export const assistantAPI = {
         method: 'POST',
         headers: {
           'Accept': 'application/json'
-          // Don't set Content-Type - browser will set it automatically with boundary for FormData
         },
         body: formData
       });
@@ -150,7 +140,6 @@ export const assistantAPI = {
           const error = await response.json();
           console.log('API Error Response:', error);
 
-          // Handle Laravel validation errors
           if (error.errors) {
             const validationErrors = Object.entries(error.errors).map(([field, messages]) => {
               return Array.isArray(messages) ? messages.join(', ') : messages;
@@ -164,7 +153,6 @@ export const assistantAPI = {
             errorMessage = JSON.stringify(error);
           }
         } catch (e) {
-          // If response is not JSON
           const statusText = response.statusText || response.status;
           errorMessage = `Registration failed: ${statusText} (${response.status})`;
         }
@@ -174,7 +162,6 @@ export const assistantAPI = {
 
       return await response.json();
     } catch (error) {
-      // Only show connection error if it's actually a connection error
       if (error.name === 'TypeError' && error.message === 'Failed to fetch') {
         throw new Error('Cannot connect to backend server. Please check:\n1. Backend server is running at: ' + API_BASE_URL + '\n2. CORS is enabled on the backend\n3. Your internet connection is working');
       }
@@ -296,21 +283,16 @@ export const quotationAPI = {
   }
 };
 
-// Travel Assistant Webhook
+// Travel Assistant Webhook with fallback
 export const assistantAPI = {
   sendMessage: async (chatInput, sessionId, chatId) => {
-    // n8n expects sessionId + chatInput; send both chatInput and input for compatibility
-    // n8n workflow expects chatInput + sessionId; include action for clarity
     const payload = {
       chatInput: chatInput,
       input: chatInput,
       sessionId: sessionId,
-      action: 'sendMessage'
+      action: 'sendMessage',
+      chatId: chatId
     };
-
-    if (chatId) {
-      payload.chatId = chatId;
-    }
 
     const webhookHeaders = {
       'Content-Type': 'application/json'
@@ -322,59 +304,87 @@ export const assistantAPI = {
       webhookHeaders['X-Auth-Token'] = sessionId;
     }
 
-    console.log('[WEBHOOK] Sending to:', WEBHOOK_URL);
-    console.log('[WEBHOOK] Payload:', JSON.stringify(payload));
-    console.log('[WEBHOOK] Headers:', webhookHeaders);
+    const tryWebhook = async (url, label, timeoutMs = 60000) => {
+      console.log(`[WEBHOOK] Sending to (${label}):`, url);
+      console.log('[WEBHOOK] Payload:', JSON.stringify(payload));
+      console.log('[WEBHOOK] Headers:', webhookHeaders);
 
-    const response = await fetch(WEBHOOK_URL, {
-      method: 'POST',
-      headers: webhookHeaders,
-      body: JSON.stringify(payload)
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    // Check if there's any content to parse
-    const contentType = response.headers.get('content-type');
-    const text = await response.text();
-
-    console.log('[WEBHOOK] Response Status:', response.status);
-    console.log('[WEBHOOK] Content-Type:', contentType);
-    console.log('[WEBHOOK] Response Text:', text);
-    console.log('[WEBHOOK] Response Text Length:', text?.length);
-
-    // If status 200 but no response text, return error
-    if (!text || text.trim() === '') {
-      console.error('[WEBHOOK] Empty response from webhook');
-      return {
-        error: 'Oops! Something went wrong. Please contact the technical team.',
-        success: false
-      };
-    }
-
-    if (contentType && contentType.includes('application/json')) {
       try {
-        const jsonResponse = JSON.parse(text);
-        console.log('[WEBHOOK] Parsed JSON Response:', jsonResponse);
-        console.log('[WEBHOOK] Response Keys:', Object.keys(jsonResponse));
-        return jsonResponse;
-      } catch (e) {
-        console.error('[WEBHOOK] JSON parse error:', e);
-        console.error('[WEBHOOK] Failed to parse text:', text);
-        return {
-          error: 'Oops! Something went wrong. Please contact the technical team.',
-          success: false
-        };
+        // Create an abort controller for timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+        const resp = await fetch(url, {
+          method: 'POST',
+          headers: webhookHeaders,
+          body: JSON.stringify(payload),
+          signal: controller.signal
+        });
+
+        clearTimeout(timeoutId);
+
+        const contentType = resp.headers.get('content-type');
+        const text = await resp.text();
+
+        console.log(`[WEBHOOK] Response Status (${label}):`, resp.status);
+        console.log(`[WEBHOOK] Content-Type (${label}):`, contentType);
+        console.log(`[WEBHOOK] Response Text (${label}):`, text);
+        console.log(`[WEBHOOK] Response Text Length (${label}):`, text?.length);
+
+        if (!resp.ok) {
+          console.error(`[WEBHOOK] HTTP error from ${label}! status: ${resp.status}`);
+          return null;
+        }
+
+        if (!text || text.trim() === '') {
+          console.error(`[WEBHOOK] Empty response from ${label}`);
+          return null;
+        }
+
+        if (contentType && contentType.includes('application/json')) {
+          try {
+            const jsonResponse = JSON.parse(text);
+            console.log(`[WEBHOOK] Parsed JSON Response (${label}):`, jsonResponse);
+            console.log(`[WEBHOOK] Response Keys (${label}):`, Object.keys(jsonResponse));
+            return jsonResponse;
+          } catch (e) {
+            console.error(`[WEBHOOK] JSON parse error (${label}):`, e);
+            console.error(`[WEBHOOK] Failed to parse text (${label}):`, text);
+            return null;
+          }
+        }
+
+        console.log(`[WEBHOOK] Non-JSON response received (${label})`);
+        return null;
+      } catch (error) {
+        if (error.name === 'AbortError') {
+          console.error(`[WEBHOOK] Request timeout (${label}) after ${timeoutMs}ms`);
+          return null;
+        }
+        console.error(`[WEBHOOK] Request failed (${label}):`, error.message);
+        return null;
       }
+    };
+
+    console.log('[WEBHOOK] Attempting primary webhook...');
+    const primaryResp = await tryWebhook(WEBHOOK_URL, 'primary', 60000);
+    if (primaryResp) {
+      console.log('[WEBHOOK] Primary webhook succeeded');
+      return primaryResp;
     }
 
-    // If not JSON, treat as error
-    console.log('[WEBHOOK] Non-JSON response received');
+    console.warn('[WEBHOOK] Primary returned empty/null/timeout. Falling back to legacy URL...');
+    const legacyResp = await tryWebhook(LEGACY_WEBHOOK_URL, 'legacy', 60000);
+    if (legacyResp) {
+      console.log('[WEBHOOK] Legacy webhook succeeded');
+      return legacyResp;
+    }
+
+    console.error('[WEBHOOK] Both webhooks failed. Returning error response.');
     return {
-      error: 'Oops! Something went wrong. Please contact the technical team.',
-      success: false
+      error: 'The AI assistant is temporarily unavailable. This could be due to:\n\n1. The n8n workflow is not responding (check n8n execution logs)\n2. The workflow execution is timing out (> 60 seconds)\n3. The webhook URL may have changed\n\nPlease check the n8n workflow status and logs.',
+      success: false,
+      details: 'Both primary and legacy webhook endpoints failed to respond'
     };
   }
 };
@@ -410,7 +420,6 @@ export const contentAPI = {
   }
 };
 
-// Default export
 const apiServices = {
   authAPI,
   bookingAPI,
