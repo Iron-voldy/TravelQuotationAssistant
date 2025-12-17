@@ -298,10 +298,12 @@ export const quotationAPI = {
 export const assistantAPI = {
   sendMessage: async (chatInput, sessionId, chatId) => {
     // n8n expects sessionId + chatInput; send both chatInput and input for compatibility
+    // n8n workflow expects chatInput + sessionId; include action for clarity
     const payload = {
       chatInput: chatInput,
       input: chatInput,
-      sessionId: sessionId
+      sessionId: sessionId,
+      action: 'sendMessage'
     };
 
     if (chatId) {
@@ -317,6 +319,10 @@ export const assistantAPI = {
       webhookHeaders['X-Session-Id'] = sessionId;
       webhookHeaders['X-Auth-Token'] = sessionId;
     }
+
+    console.log('[WEBHOOK] Sending to:', WEBHOOK_URL);
+    console.log('[WEBHOOK] Payload:', JSON.stringify(payload));
+    console.log('[WEBHOOK] Headers:', webhookHeaders);
 
     const response = await fetch(WEBHOOK_URL, {
       method: 'POST',
