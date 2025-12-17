@@ -24,8 +24,8 @@ const getApiBaseUrl = () => {
 };
 
 const API_BASE_URL = getApiBaseUrl();
+// n8n webhook endpoint - can be overridden with REACT_APP_WEBHOOK_URL env variable
 const DEFAULT_WEBHOOK_URL = 'https://aahaas-ai.app.n8n.cloud/webhook/085ddfb8-f53a-456e-b662-85de50da8147';
-const LEGACY_WEBHOOK_URL = 'https://aahaas-ai.app.n8n.cloud/webhook/d7aa38a3-c48f-4c89-b557-292512a35342';
 const WEBHOOK_URL = process.env.REACT_APP_WEBHOOK_URL || DEFAULT_WEBHOOK_URL;
 
 console.log('[API CONFIG] Base URL:', API_BASE_URL);
@@ -352,25 +352,21 @@ export const assistantAPI = {
       }
     };
 
-    console.log('[WEBHOOK] Attempting primary webhook...');
-    const primaryResp = await tryWebhook(WEBHOOK_URL, 'primary');
-    if (primaryResp) {
-      console.log('[WEBHOOK] Primary webhook succeeded');
-      return primaryResp;
+    console.log('[WEBHOOK] Sending request to n8n workflow...');
+    console.log('[WEBHOOK] Please wait - this may take 2-3 minutes...');
+
+    const response = await tryWebhook(WEBHOOK_URL, 'n8n');
+
+    if (response) {
+      console.log('[WEBHOOK] Success! Received response from n8n');
+      return response;
     }
 
-    console.warn('[WEBHOOK] Primary returned empty/null. Falling back to legacy URL...');
-    const legacyResp = await tryWebhook(LEGACY_WEBHOOK_URL, 'legacy');
-    if (legacyResp) {
-      console.log('[WEBHOOK] Legacy webhook succeeded');
-      return legacyResp;
-    }
-
-    console.error('[WEBHOOK] Both webhooks failed. Returning error response.');
+    console.error('[WEBHOOK] No response from n8n workflow');
     return {
-      error: 'The AI assistant is temporarily unavailable. This could be due to:\n\n1. The n8n workflow is not responding (check n8n execution logs)\n2. There may be an error in the workflow execution\n3. The webhook URL may have changed\n\nPlease check the n8n workflow status and logs.',
+      error: 'The n8n workflow did not return a response. Please check:\n\n1. The workflow is ACTIVE in n8n dashboard\n2. Check n8n execution logs for errors\n3. Verify the workflow completes successfully',
       success: false,
-      details: 'Both primary and legacy webhook endpoints failed to respond'
+      details: 'Webhook endpoint did not respond with data'
     };
   }
 };
