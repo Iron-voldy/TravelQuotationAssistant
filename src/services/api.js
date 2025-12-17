@@ -288,10 +288,14 @@ export const assistantAPI = {
   sendMessage: async (chatInput, sessionId, chatId) => {
     // n8n workflow expects OBJECT format based on pinData in workflow file
     // The workflow's "Code in JavaScript" node adds action="sendMessage" automatically
-    // Format matches: { "chatInput": "...", "sessionId": "..." }
+    // IMPORTANT: Also send the user's Bearer token so n8n can use it for API calls
+    // Format: { "chatInput": "...", "sessionId": "...", "bearerToken": "..." }
+    const bearerToken = getAuthToken(); // Get user's login token
+
     const payload = {
       chatInput: chatInput,
-      sessionId: sessionId
+      sessionId: sessionId,
+      bearerToken: bearerToken  // Send user's token to n8n
     };
 
     // Simple headers - just Content-Type
@@ -303,6 +307,8 @@ export const assistantAPI = {
     const tryWebhook = async (url, label) => {
       console.log(`[WEBHOOK] Sending to (${label}):`, url);
       console.log('[WEBHOOK] Payload:', JSON.stringify(payload));
+      console.log('[WEBHOOK] Bearer Token Present:', !!bearerToken);
+      console.log('[WEBHOOK] Bearer Token (first 20 chars):', bearerToken ? bearerToken.substring(0, 20) + '...' : 'NOT SET');
       console.log('[WEBHOOK] Headers:', webhookHeaders);
 
       try {
