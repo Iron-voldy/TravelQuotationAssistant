@@ -24,9 +24,25 @@ const getApiBaseUrl = () => {
 };
 
 const API_BASE_URL = getApiBaseUrl();
+
 // n8n webhook endpoint - can be overridden with REACT_APP_WEBHOOK_URL env variable
-const DEFAULT_WEBHOOK_URL = 'https://aahaas-ai.app.n8n.cloud/webhook/085ddfb8-f53a-456e-b662-85de50da8147';
-const WEBHOOK_URL = process.env.REACT_APP_WEBHOOK_URL || DEFAULT_WEBHOOK_URL;
+// In development, use local proxy to bypass CORS
+const getWebhookUrl = () => {
+  if (process.env.REACT_APP_WEBHOOK_URL) {
+    console.log('[WEBHOOK] Using custom webhook URL:', process.env.REACT_APP_WEBHOOK_URL);
+    return process.env.REACT_APP_WEBHOOK_URL;
+  }
+
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[WEBHOOK] Using local proxy for n8n webhook');
+    return '/n8n-webhook';
+  }
+
+  console.log('[WEBHOOK] Using direct n8n webhook URL');
+  return 'https://applehds.app.n8n.cloud/webhook-test/e3073b45-1349-49f2-98c5-ff147e2a278d';
+};
+
+const WEBHOOK_URL = getWebhookUrl();
 
 console.log('[API CONFIG] Base URL:', API_BASE_URL);
 console.log('[API CONFIG] Webhook URL:', WEBHOOK_URL, process.env.REACT_APP_WEBHOOK_URL ? '(env override)' : '(default)');
@@ -86,15 +102,20 @@ export const authAPI = {
           } else if (error.message) {
             errorMessage = error.message;
           } else if (error.error) {
-            errorMessage = error.error;
+            // Handle "Unauthorized" and similar backend errors
+            if (error.error.toLowerCase() === 'unauthorized' || error.error.toLowerCase().includes('unauthorized')) {
+              errorMessage = 'Invalid email or password. Please check your credentials and try again.';
+            } else {
+              errorMessage = error.error;
+            }
           } else if (response.status === 401) {
-            errorMessage = 'Invalid email or password';
+            errorMessage = 'Invalid email or password. Please check your credentials and try again.';
           } else {
             errorMessage = JSON.stringify(error);
           }
         } catch (e) {
           if (response.status === 401) {
-            errorMessage = 'Invalid email or password';
+            errorMessage = 'Invalid email or password. Please check your credentials and try again.';
           } else {
             const statusText = response.statusText || response.status;
             errorMessage = `Login failed: ${statusText} (${response.status})`;
@@ -370,7 +391,7 @@ export const assistantAPI = {
 
     console.error('[WEBHOOK] No response from n8n workflow');
     return {
-      error: 'The n8n workflow did not return a response. Please check:\n\n1. The workflow is ACTIVE in n8n dashboard\n2. Check n8n execution logs for errors\n3. Verify the workflow completes successfully',
+      error: 'The AI itinerary did not return a response. Please check the following:\n\n1. Ensure the destination is mentioned correctly.\n2. Log out and try again.\n3. Double-check that your prompt is correct. (Remove Unnecessary Tags)',
       success: false,
       details: 'Webhook endpoint did not respond with data'
     };

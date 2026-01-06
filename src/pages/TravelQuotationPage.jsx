@@ -132,6 +132,23 @@ const TravelQuotationPage = () => {
     const trimmedMessage = message.trim();
     if (!trimmedMessage) return;
 
+    // Helper function to detect random/inappropriate characters
+    const isRandomOrInappropriate = (text) => {
+      // Check for excessive special characters or numbers without context
+      const specialCharRatio = (text.match(/[^a-zA-Z0-9\s]/g) || []).length / text.length;
+      const hasReasonableWords = /\b[a-zA-Z]{3,}\b/.test(text); // At least one word with 3+ letters
+      const isOnlyNumbers = /^\d+$/.test(text);
+      const hasExcessiveRepeats = /(.)\1{4,}/.test(text); // Same character repeated 5+ times
+
+      // Consider it random if:
+      // - More than 30% special characters AND no reasonable words
+      // - Only numbers without context (like just "12345")
+      // - Excessive character repetition
+      return (specialCharRatio > 0.3 && !hasReasonableWords) ||
+        (isOnlyNumbers && text.length < 3) ||
+        hasExcessiveRepeats;
+    };
+
     // Create new chat if none exists
     let chatId = currentChatId;
     let currentChatData;
@@ -309,27 +326,53 @@ const TravelQuotationPage = () => {
       } else if (response.error) {
         // ERROR: Webhook returned error field
         console.error('❌ [ERROR] Webhook error:', response.error);
-        assistantMessage = response.error;
+        // Check if this is the default n8n error message and input was random
+        const isDefaultN8nError = response.error.includes('AI itinerary did not return') ||
+          response.error.includes('workflow did not return') ||
+          response.error.includes('workflow is ACTIVE');
+
+        if (isDefaultN8nError && isRandomOrInappropriate(trimmedMessage)) {
+          assistantMessage = 'Please search for the appropriate itinerary you are looking for.';
+        } else {
+          assistantMessage = response.error;
+        }
         isSuccess = false;
       } else if (response.success === false) {
         // ERROR: Webhook indicated failure
         console.error('❌ [ERROR] Webhook failure:', response);
-        assistantMessage = response.output || response.message || 'Oops! Something went wrong. Please contact the technical team.';
+        // Check if the input was random/inappropriate
+        if (isRandomOrInappropriate(trimmedMessage)) {
+          assistantMessage = 'Please search for the appropriate itinerary you are looking for.';
+        } else {
+          assistantMessage = response.output || response.message || 'Oops! Something went wrong. Please contact the technical team.';
+        }
         isSuccess = false;
       } else if (response.output) {
         // No quotation number but has output - treat as error
         console.warn('⚠️ [WARNING] Output but no quotation_no:', response);
-        assistantMessage = 'Oops! Something went wrong. Please contact the technical team.';
+        if (isRandomOrInappropriate(trimmedMessage)) {
+          assistantMessage = 'Please search for the appropriate itinerary you are looking for.';
+        } else {
+          assistantMessage = 'Oops! Something went wrong. Please contact the technical team.';
+        }
         isSuccess = false;
       } else if (response.message && !quotationNo) {
         // No quotation number but has message - treat as error
         console.warn('⚠️ [WARNING] Message but no quotation_no:', response);
-        assistantMessage = 'Oops! Something went wrong. Please contact the technical team.';
+        if (isRandomOrInappropriate(trimmedMessage)) {
+          assistantMessage = 'Please search for the appropriate itinerary you are looking for.';
+        } else {
+          assistantMessage = 'Oops! Something went wrong. Please contact the technical team.';
+        }
         isSuccess = false;
       } else {
         // Unrecognized response structure
         console.error('❌ [ERROR] Unrecognized response structure:', response);
-        assistantMessage = 'Oops! Something went wrong. Please contact the technical team.';
+        if (isRandomOrInappropriate(trimmedMessage)) {
+          assistantMessage = 'Please search for the appropriate itinerary you are looking for.';
+        } else {
+          assistantMessage = 'Oops! Something went wrong. Please contact the technical team.';
+        }
         isSuccess = false;
       }
 
@@ -357,11 +400,20 @@ const TravelQuotationPage = () => {
       localStorage.setItem('travel_chats', JSON.stringify(updatedChatsWithAssistantMsg));
     } catch (error) {
       console.error('Error:', error);
+
+      // Check if input was random/inappropriate for catch block errors too
+      let errorMessage;
+      if (isRandomOrInappropriate(trimmedMessage)) {
+        errorMessage = 'Please search for the appropriate itinerary you are looking for.';
+      } else {
+        errorMessage = 'Sorry, there was an error processing your request. Please try again.';
+      }
+
       setError('Failed to connect to the server. Please try again.');
 
       const errorMsg = {
         type: 'assistant',
-        content: 'Sorry, there was an error processing your request. Please try again.',
+        content: errorMessage,
         id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_error`,
         timestamp: new Date().toISOString()
       };
@@ -451,25 +503,25 @@ const TravelQuotationPage = () => {
           {chatArray.map((chat) => {
             console.log('Rendering chat item:', { id: chat.id, title: chat.title });
             return (
-            <div
-              key={chat.id}
-              className={`chat-item ${chat.id === currentChatId ? 'active' : ''}`}
-              onClick={() => loadChat(chat.id)}
-            >
-              <div className="chat-item-content">
-                <div className="chat-item-title">{chat.title}</div>
-                <div className="chat-item-date">{formatDate(chat.createdAt)}</div>
+              <div
+                key={chat.id}
+                className={`chat-item ${chat.id === currentChatId ? 'active' : ''}`}
+                onClick={() => loadChat(chat.id)}
+              >
+                <div className="chat-item-content">
+                  <div className="chat-item-title">{chat.title}</div>
+                  <div className="chat-item-date">{formatDate(chat.createdAt)}</div>
+                </div>
+                <button className="chat-item-delete" onClick={(e) => deleteChat(chat.id, e)}>
+                  <i className="fas fa-trash"></i>
+                </button>
               </div>
-              <button className="chat-item-delete" onClick={(e) => deleteChat(chat.id, e)}>
-                <i className="fas fa-trash"></i>
-              </button>
-            </div>
             );
           })}
         </div>
 
         <div className="sidebar-footer">
-          <div className="user-info">
+          <div className="user-info" title={`${user?.name || 'User'}\n${user?.email || ''}`}>
             <div className="user-avatar">
               <i className="fas fa-user-circle"></i>
             </div>
@@ -512,7 +564,7 @@ const TravelQuotationPage = () => {
               currentChat.messages && currentChat.messages.map((msg, index) => {
                 // Check if this is a success message by looking at the content
                 const isSuccessMsg = msg.content && msg.content.includes('Your Request Has Been Created');
-                
+
                 // Try to get request number from stored quotationNo first, then from content
                 let requestNumber = msg.quotationNo;
                 if (!requestNumber && msg.content) {
@@ -531,7 +583,7 @@ const TravelQuotationPage = () => {
                           {requestNumber && (
                             <div className="request-number-section">
                               <span className="request-label">Your Request Number:</span>
-                              <div 
+                              <div
                                 className="request-number-box"
                                 onClick={() => {
                                   const copyToClipboard = async () => {
@@ -634,13 +686,13 @@ const TravelQuotationPage = () => {
                 Request number <strong>{copiedNumber}</strong> has been copied to clipboard!
               </div>
               <div className="modal-buttons">
-                <button 
+                <button
                   className="modal-ok-btn"
                   onClick={() => setShowCopyModal(false)}
                 >
                   OK
                 </button>
-                <button 
+                <button
                   className="modal-close-btn"
                   onClick={() => setShowCopyModal(false)}
                 >

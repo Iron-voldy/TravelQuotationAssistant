@@ -25,10 +25,14 @@ const LoginPage = () => {
     return backgroundImages[Math.floor(Math.random() * backgroundImages.length)];
   });
 
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    rememberMe: false
+  const [formData, setFormData] = useState(() => {
+    const savedEmail = localStorage.getItem('rememberedEmail');
+    const savedPassword = localStorage.getItem('rememberedPassword');
+    return {
+      email: savedEmail || '',
+      password: savedPassword || '',
+      rememberMe: !!(savedEmail && savedPassword)
+    };
   });
 
   const [errors, setErrors] = useState({});
@@ -97,6 +101,15 @@ const LoginPage = () => {
         console.log('🎉 ═══════════════════════════════════════════════════');
 
         if (authToken) {
+          // Handle Remember Me
+          if (formData.rememberMe) {
+            localStorage.setItem('rememberedEmail', formData.email);
+            localStorage.setItem('rememberedPassword', formData.password);
+          } else {
+            localStorage.removeItem('rememberedEmail');
+            localStorage.removeItem('rememberedPassword');
+          }
+
           login(userData, authToken, expiresIn);
           navigate('/assistant');
         } else {

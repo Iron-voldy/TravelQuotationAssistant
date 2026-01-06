@@ -4,7 +4,7 @@
 
 // Configuration
 const API_BASE_URL = 'https://stagev2.appletechlabs.com/api';
-const WEBHOOK_URL = 'https://aahaas-ai.app.n8n.cloud/webhook/085ddfb8-f53a-456e-b662-85de50da8147';
+const WEBHOOK_URL = 'https://applehds.app.n8n.cloud/webhook-test/e3073b45-1349-49f2-98c5-ff147e2a278d';
 
 // Demo delay to simulate network request
 const delay = (ms = 1000) => new Promise(resolve => setTimeout(resolve, ms));
