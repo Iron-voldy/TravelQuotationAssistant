@@ -1,0 +1,1102 @@
+{
+  "name": "Apple-Quatation-Live",
+  "nodes": [
+    {
+      "parameters": {
+        "agent": "conversationalAgent",
+        "promptType": "define",
+        "text": "=You are a travel quotation assistant. Analyze the user's travel request and create a professional summary.\n\nUser input: {{ $json.chatInput }}\n\nExtract and analyze:\n1. Destination country\n2. Arrival date (if not mentioned, use {{ $now.plus(15, 'days').toFormat('yyyy-MM-dd') }})\n3. Duration: \n   - If user mentions \"X days\" → calculate nights as X-1 (e.g., 9 days = 8 nights)\n   - If user mentions \"X nights\" → calculate days as X+1\n   - If NOT mentioned → default to 9 days, 8 nights\n4. Calculate departure date: arrival_date + nights\n5. Number of adults and children (if not mentioned, default to 2 adults, 0 children)\n6. Cities/places to visit:\n   - If user mentions specific cities, use those\n   - If NOT mentioned → default to maximum 3 cities\n7. Hotel star category:\n   - Check if user mentioned: \"5 star\", \"5-star\", \"five star\" → use \"5-star\"\n   - Check if user mentioned: \"4 star\", \"4-star\", \"four star\" → use \"4-star\"\n   - Check if user mentioned: \"3 star\", \"3-star\", \"three star\" → use \"3-star\"\n   - Check if user mentioned: \"2 star\", \"2-star\", \"two star\" → use \"2-star\"\n   - Check if user mentioned: \"luxury\" → use \"5-star\"\n   - Check if user mentioned: \"budget\" → use \"3-star\"\n   - If NOT mentioned → default to \"4-star\"\n8. Meal plan: \n   - If user specifies different meal plans for different cities, note each city's meal plan\n   - If user specifies one meal plan for all, apply it to all cities\n   - If NOT mentioned at all → default to \"bed & breakfast\"\n   - Meal plan types: \"half board\" (HB), \"full board\" (FB), \"room only\" (RO), \"all inclusive\" (AL), \"bed & breakfast\" (BB)\n9. Budget: If user mentioned luxury or 5-star use \"luxury budget\", if 3-star or budget use \"budget-friendly\", otherwise use \"mid-range budget\"\n\nIMPORTANT: If different cities have different meal plans, format the output to include meal plan per city:\n\nFormat your output as:\n\"Customer requesting a [Country] multi-city tour for [X] days, [Y] nights from [Month Day] to [Month Day], [Year], for [X] adults and [Y] children. [Budget type] with [X-star] hotel accommodation. Interested in visiting key cities and attractions: [City1] with [meal plan], [City2] with [meal plan], [City3] with [meal plan].\"\n\nIf all cities have the same meal plan:\n\"Customer requesting a [Country] multi-city tour for [X] days, [Y] nights from [Month Day] to [Month Day], [Year], for [X] adults and [Y] children. [Budget type] with [X-star] hotel accommodation and [meal plan] meal plan. Interested in visiting key cities and attractions including [list cities].\"\n\nExamples:\n- Different meal plans: \"Customer requesting a Sri Lanka multi-city tour for 9 days, 8 nights from December 12 to December 20, 2026, for 3 adults and 2 children. Mid-range budget with 4-star hotel accommodation. Interested in visiting key cities and attractions: Sigiriya with half board, Dambulla with room only, Bentota with full board.\"\n- Same meal plan with 5-star: \"Customer requesting a Sri Lanka multi-city tour for 9 days, 8 nights from December 12 to December 20, 2025, for 7 adults and 2 children. Luxury budget with 5-star hotel accommodation and bed & breakfast meal plan. Interested in visiting key cities and attractions including Colombo, Kandy, Galle, and Yala.\"\n- Budget 3-star: \"Customer requesting a Sri Lanka multi-city tour for 9 days, 8 nights from December 12 to December 20, 2025, for 2 adults and 1 children. Budget-friendly with 3-star hotel accommodation and bed & breakfast meal plan. Interested in visiting key cities and attractions including Colombo, Kandy, and Galle.\"",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=You are a professional travel quotation assistant. Create concise, formatted summaries of customer travel requests. Always use the exact format specified and calculate dates accurately. Pay special attention to hotel star categories, meal plans mentioned by the user and which cities they apply to."
+        }
+      },
+      "id": "c7b1c4c0-1ee9-4f46-ba7b-e2821c8b4084",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        304,
+        608
+      ]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o",
+        "options": {}
+      },
+      "id": "a27a2757-d250-4e39-bb82-fd2a17409a32",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [
+        304,
+        880
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "EghJAjFZejQIbcUf",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the AI Agent output text\nconst inputData = $input.first().json;\nconst text = inputData.output || '';\n\nlet chatInput;\n\ntry {\n  chatInput = $('When chat message received').first().json.chatInput;\n} catch (e) {\n  chatInput = undefined;\n}\n\nif (chatInput === undefined) {\n  try {\n    chatInput = $('Code in JavaScript').first().json.chatInput;\n  } catch (e) {\n    chatInput = undefined;\n  }\n}\n\n\n\n\n// Parse the text to extract information\nlet country = 'Sri Lanka'; // Default fallback\nlet arrivalDate = '';\nlet adult = 2; // Default 2 adults\nlet children = 0; // Default 0 children\nlet places = [];\nlet mealType = 'BB'; // Default\nlet cityMealMap = {}; // Map of city to meal type\nlet hotelStarCategory = 4; // Default 4-star\nlet totalNights = 8; // Default 8 nights (9 days)\n\n// Extract country (e.g., \"Vietnam multi-city tour\" or \"Sri Lanka multi-city tour\")\nconst countryMatch = text.match(/requesting a ([A-Za-z\\s]+?)\\s+multi-city tour/i);\nif (countryMatch) {\n  country = countryMatch[1].trim();\n}\n\n// Extract duration (e.g., \"for 9 days, 8 nights\")\nconst durationMatch = text.match(/for (\\d+) days, (\\d+) nights/i);\nif (durationMatch) {\n  totalNights = parseInt(durationMatch[2]);\n} else {\n  // Check chat input for days/nights\n  const chatDaysMatch = chatInput.match(/(\\d+)\\s+days/i);\n  if (chatDaysMatch) {\n    const days = parseInt(chatDaysMatch[1]);\n    totalNights = days - 1; // X days = X-1 nights\n  }\n  const chatNightsMatch = chatInput.match(/(\\d+)\\s+nights/i);\n  if (chatNightsMatch) {\n    totalNights = parseInt(chatNightsMatch[1]);\n  }\n}\n\n// Extract dates (e.g., \"from December 12 to December 18, 2025\")\nconst dateMatch = text.match(/from ([A-Za-z]+ \\d+) to ([A-Za-z]+ \\d+), (\\d{4})/i);\nif (dateMatch) {\n  const monthDay = dateMatch[1]; // e.g., \"December 12\"\n  const year = dateMatch[3];\n  const date = new Date(`${monthDay}, ${year}`);\n  arrivalDate = date.toISOString().split('T')[0];\n} else {\n  // Check chat input for date in format YYYY-MM-DD or similar\n  const chatDateMatch = chatInput.match(/(\\d{4})[-\\/](\\d{1,2})[-\\/](\\d{1,2})/i);\n  if (chatDateMatch) {\n    arrivalDate = `${chatDateMatch[1]}-${chatDateMatch[2].padStart(2, '0')}-${chatDateMatch[3].padStart(2, '0')}`;\n  }\n}\n\n// If no date found, use today + 15 days as default\nif (!arrivalDate) {\n  const defaultDate = new Date();\n  defaultDate.setDate(defaultDate.getDate() + 15);\n  arrivalDate = defaultDate.toISOString().split('T')[0];\n}\n\n// Extract pax (e.g., \"for 3 adults and 2 children\")\nconst adultMatch = text.match(/(\\d+)\\s+adult/i);\nif (adultMatch) {\n  adult = parseInt(adultMatch[1]);\n} else {\n  // Check chat input\n  const chatAdultMatch = chatInput.match(/(\\d+)\\s+adult/i);\n  if (chatAdultMatch) {\n    adult = parseInt(chatAdultMatch[1]);\n  }\n}\n\nconst childMatch = text.match(/(\\d+)\\s+child/i);\nif (childMatch) {\n  children = parseInt(childMatch[1]);\n} else {\n  // Check chat input\n  const chatChildMatch = chatInput.match(/(\\d+)\\s+child/i);\n  if (chatChildMatch) {\n    children = parseInt(chatChildMatch[1]);\n  }\n}\n\n// Extract hotel star category (e.g., \"5-star hotel\", \"4-star hotel\")\nconst starMatch = text.match(/(\\d)-star\\s+hotel/i);\nif (starMatch) {\n  hotelStarCategory = parseInt(starMatch[1]);\n}\n\n// Helper function to convert meal plan text to code\nfunction getMealCode(mealText) {\n  const lowerText = mealText.toLowerCase();\n  if (lowerText.includes('half board')) return 'HB';\n  if (lowerText.includes('full board')) return 'FB';\n  if (lowerText.includes('all inclusive')) return 'AL';\n  if (lowerText.includes('room only')) return 'RO';\n  if (lowerText.includes('bed & breakfast') || lowerText.includes('bed and breakfast')) return 'BB';\n  return 'BB'; // default\n}\n\n// Check if cities have individual meal plans (format: \"City1 with meal_plan, City2 with meal_plan\")\nconst cityMealPattern = /([A-Za-z]+)\\s+with\\s+(half board|full board|room only|all inclusive|bed & breakfast|bed and breakfast)/gi;\nconst cityMealMatches = text.matchAll(cityMealPattern);\nlet hasCitySpecificMeals = false;\n\nfor (const match of cityMealMatches) {\n  const cityName = match[1].trim();\n  const mealPlan = match[2].trim();\n  cityMealMap[cityName] = getMealCode(mealPlan);\n  places.push(cityName);\n  hasCitySpecificMeals = true;\n}\n\n// If no city-specific meal plans found, extract places and meal plan separately\nif (!hasCitySpecificMeals) {\n  // Extract places (e.g., \"including Colombo, Kandy, Galle, and Yala\")\n  const placesMatch = text.match(/including ([^.]+)\\.?$/i);\n  if (placesMatch) {\n    const placesStr = placesMatch[1];\n    // Split by comma and 'and', then clean up\n    places = placesStr\n      .split(/,|\\s+and\\s+/)\n      .map(p => p.trim())\n      .filter(p => p.length > 0);\n  } else {\n    // Try to extract from chat input\n    const chatPlacesMatch = chatInput.match(/(?:in|to|visit)\\s+([A-Za-z,\\s]+?)(?:\\s+\\d|\\s+for|$)/i);\n    if (chatPlacesMatch) {\n      const placesStr = chatPlacesMatch[1];\n      places = placesStr\n        .split(/,|\\s+and\\s+/)\n        .map(p => p.trim())\n        .filter(p => p.length > 2 && !['days', 'nights', 'day', 'night'].includes(p.toLowerCase()));\n    }\n  }\n  \n  // If still no places or empty, default to 3 popular cities\n  if (places.length === 0) {\n    places = ['Colombo', 'Kandy', 'Galle'];\n  }\n  \n  // Extract single meal plan for all cities\n  if (text.toLowerCase().includes('half board')) {\n    mealType = 'HB';\n  } else if (text.toLowerCase().includes('full board')) {\n    mealType = 'FB';\n  } else if (text.toLowerCase().includes('all inclusive')) {\n    mealType = 'AL';\n  } else if (text.toLowerCase().includes('room only')) {\n    mealType = 'RO';\n  } else if (text.toLowerCase().includes('bed & breakfast') || text.toLowerCase().includes('bed and breakfast')) {\n    mealType = 'BB';\n  }\n}\n\n// Create the formatted output\nconst output = {\n  country_data: {\n    country: country\n  },\n  genaral_data: {\n    arrival_date: arrivalDate,\n    total_nights: totalNights,\n    pax: {\n      adult: adult,\n      cwb: children,\n      cnb: 0\n    },\n    market: 1,\n    hotel_star_category: hotelStarCategory\n  },\n  destination_data: {\n    place: places,\n    meal_type: mealType,\n    city_meal_map: Object.keys(cityMealMap).length > 0 ? cityMealMap : null\n  }\n};\n\nreturn { json: output };"
+      },
+      "id": "57e2aea7-9afc-4b67-81eb-177f7c4766aa",
+      "name": "Code",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        976,
+        608
+      ]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "=destination_data.place",
+        "options": {}
+      },
+      "id": "11578948-75ba-4342-90f9-c93ce3f17a9d",
+      "name": "Split Out Places",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        928,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get ALL split items\nconst items = $input.all();\nconst originalData = $('Code').first().json;\n\n// Get arrival date and calculate stays\nconst arrivalDate = originalData.genaral_data.arrival_date;\nconst totalNights = originalData.genaral_data.total_nights || 8; // Get from Code node or default to 8\nconst cityCount = items.length;\nconst nightsPerCity = Math.floor(totalNights / cityCount);\nconst remainderNights = totalNights % cityCount; // Handle remainder nights\n\n// Get city-specific meal plans if available\nconst cityMealMap = originalData.destination_data.city_meal_map;\nconst defaultMealType = originalData.destination_data.meal_type;\n\n// Get hotel star category\nconst hotelStarCategory = originalData.genaral_data.hotel_star_category || 4;\n\n// Process each item and calculate check-in/check-out dates\nconst results = [];\nlet currentCheckIn = new Date(arrivalDate);\n\nfor (let i = 0; i < items.length; i++) {\n  const item = items[i];\n  const currentPlace = item.json['destination_data.place'];\n  \n  // Distribute remainder nights to first cities\n  const nightsForThisCity = nightsPerCity + (i < remainderNights ? 1 : 0);\n  \n  // Calculate check-out date (check-in + nights for this city)\n  const checkOutDate = new Date(currentCheckIn);\n  checkOutDate.setDate(checkOutDate.getDate() + nightsForThisCity);\n  \n  // Format dates as YYYY-MM-DD\n  const checkIn = currentCheckIn.toISOString().split('T')[0];\n  const checkOut = checkOutDate.toISOString().split('T')[0];\n  \n  // Determine meal type for this city\n  let mealType = defaultMealType;\n  if (cityMealMap && cityMealMap[currentPlace]) {\n    mealType = cityMealMap[currentPlace];\n  }\n  \n  results.push({\n    json: {\n      current_city: currentPlace,\n      country_data: originalData.country_data,\n      genaral_data: {\n        pax: originalData.genaral_data.pax,\n        market: originalData.genaral_data.market\n      },\n      destination_data: {\n        meal_type: mealType,\n        star_rate: hotelStarCategory,\n        current_place: currentPlace,\n        check_in: checkIn,\n        check_out: checkOut,\n        nights: nightsForThisCity\n      }\n    }\n  });\n  \n  // Next city's check-in is current city's check-out\n  currentCheckIn = checkOutDate;\n}\n\n// Add arrival_date to the first item only\nif (results.length > 0) {\n  results[0].json.genaral_data.arrival_date = arrivalDate;\n}\n\nreturn results;"
+      },
+      "id": "c387bced-115b-421d-bca4-debb01a6100b",
+      "name": "Prepare for Lookup",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1136,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1n-xL0h9PHeOhfcpytCouV7_pkYj4BzSMZghqTsKrgYo/edit?usp=sharing",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Sheet8",
+          "mode": "name"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "City",
+              "lookupValue": "={{ $json.current_city }}"
+            },
+            {
+              "lookupColumn": "Hotel Class",
+              "lookupValue": "={{ $json.destination_data.star_rate }}"
+            }
+          ]
+        },
+        "options": {
+          "returnFirstMatch": true
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1360,
+        160
+      ],
+      "id": "5235fab7-2ebe-4324-8fe9-e75939d86876",
+      "name": "Get row(s) in sheet",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "sfSFYP2dSvgG51ze",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get all hotel data from Google Sheets\nconst hotelItems = $input.all();\n\n// Get all city data from Prepare for Lookup node\nconst cityItems = $('Prepare for Lookup').all();\n\n// Create a map of city data by city name for easy lookup\nconst cityDataMap = {};\nfor (const cityItem of cityItems) {\n  const cityName = cityItem.json.current_city;\n  cityDataMap[cityName] = cityItem.json;\n}\n\n// Process each hotel and add booking details\nconst results = [];\n\nfor (const hotelItem of hotelItems) {\n  const hotelData = hotelItem.json;\n  const cityName = hotelData.City;\n  \n  // Get the corresponding city data\n  const cityData = cityDataMap[cityName];\n  \n  // Remove Aahaas Hotel ID from the data\n  const { 'Aahaas Hotel ID': removed, ...filteredHotelData } = hotelData;\n  \n  if (cityData) {\n    // Merge hotel data with country_data at the top, then other fields\n    results.push({\n      json: {\n        country_data: cityData.country_data,\n        ...filteredHotelData,\n        check_in: cityData.destination_data.check_in,\n        check_out: cityData.destination_data.check_out,\n        meal_type: cityData.destination_data.meal_type\n      }\n    });\n  } else {\n    // If no matching city data, just return filtered hotel data with default country\n    results.push({\n      json: {\n        country_data: { country: \"Sri Lanka\" },\n        ...filteredHotelData\n      }\n    });\n  }\n}\n\nreturn results;"
+      },
+      "id": "caf1e91e-aa39-4960-8613-7c4d9aa3278f",
+      "name": "Add Booking Details",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1584,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://applev2.appletechlabs.com/api/content/place/?name={{ $json.City }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpBearerAuth",
+        "options": {}
+      },
+      "id": "5ad44840-58f1-4dbe-bc40-5f9e3fec13c5",
+      "name": "Get City ID from API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1696,
+        352
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "rV15rVRfnenmkroQ",
+          "name": "Bearer Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Country name to ID mapping\nconst countryMap = {\n  \"Sri Lanka\": 62,\n  \"Malaysia\": 63,\n  \"Singapore\": 64,\n  \"India\": 149,\n  \"Vietnam\": 256,\n  \"vietnam\": 256\n};\n\n// Meal plan to ID mapping\nconst mealPlanMap = {\n  \"BB\": 1,  // Breakfast Only\n  \"HB\": 2,  // Breakfast and Dinner\n  \"FB\": 3,  // Breakfast, lunch and Dinner\n  \"RO\": 4,  // Room Only\n  \"AL\": 5   // All Inclusive\n};\n\n// Room Category to ID mapping\nconst roomCategoryMap = {\n  \"Superior Sea View Room\": 1,\n  \"Deluxe Delight(Garden View/Garden Terrace)\": 2,\n  \"Deluxe Delight(Sea View)\": 3,\n  \"Premium Indulgence\": 4,\n  \"Premium Indulgence(Family Room)\": 5,\n  \"Deluxe Allure Suite\": 6,\n  \"Premium Temptetions Suite\": 7,\n  \"Presidential Suite\": 8,\n  \"Base\": 9,\n  \"Deluxe\": 10,\n  \"Superior Deluxe\": 11,\n  \"Superior Deluxe Suite\": 12,\n  \"Standard\": 13,\n  \"Superior\": 14,\n  \"Premium  Deluxe\": 16\n};\n\n// Get all API responses\nconst apiResponses = $input.all();\n\n// Get all booking data from Add Booking Details or Reformat Hotel Data (for updates)\nlet bookingDataItems = [];\ntry {\n  bookingDataItems = $('Add Booking Details').all();\n} catch (error) {\n  // If Add Booking Details is not executed, try Reformat Hotel Data (update flow)\n  try {\n    bookingDataItems = $('Reformat Hotel Data').all();\n  } catch (e) {\n    // Fallback: use input data\n    bookingDataItems = $input.all();\n  }\n}\n\n// Get pax data - try from Prepare for Lookup first, then from Apply Changes node\nlet paxData = { adult: 2, cwb: 0, cnb: 0 }; // Default values\n\ntry {\n  const prepareData = $('Prepare for Lookup').first().json;\n  paxData = prepareData.genaral_data.pax;\n} catch (error) {\n  // If Prepare for Lookup is not executed, try to get from Apply Changes\n  try {\n    const applyChangesData = $('Apply Changes').first().json;\n    if (applyChangesData.hotel_data && applyChangesData.hotel_data.length > 0) {\n      // Extract pax from first hotel item if available\n      const firstHotel = applyChangesData.hotel_data[0];\n      if (firstHotel.pax) {\n        paxData = firstHotel.pax;\n      }\n    }\n  } catch (e) {\n    // Use default pax values\n  }\n}\n\n// Process each booking item\nconst results = [];\n\nfor (let i = 0; i < apiResponses.length; i++) {\n  const apiResponse = apiResponses[i].json;\n  const bookingData = bookingDataItems[i].json;\n  \n  let cityId = bookingData.City; // Default to original city name if not found\n  \n  // Extract city ID from API response\n  if (apiResponse && apiResponse.body && Array.isArray(apiResponse.body) && apiResponse.body.length > 0) {\n    // Find the matching city with the correct country\n    const countryName = bookingData.country_data.country;\n    const countryId = countryMap[countryName] || null;\n    \n    // Find city with matching country if possible\n    let cityData = null;\n    if (countryId) {\n      cityData = apiResponse.body.find(city => city.country === countryId);\n    }\n    \n    // If no match with country, use the first result\n    if (!cityData && apiResponse.body.length > 0) {\n      cityData = apiResponse.body[0];\n    }\n    \n    if (cityData) {\n      cityId = cityData.id;\n    }\n  }\n  \n  // Get country name and map to ID\n  const countryName = bookingData.country_data.country;\n  const countryId = countryMap[countryName] || countryName; // Use ID if found, otherwise keep original\n  \n  // Get meal type and map to ID\n  const mealType = bookingData.meal_type;\n  const mealTypeId = mealPlanMap[mealType] || mealType; // Use ID if found, otherwise keep original\n  \n  // Get room category and map to ID\n  const roomCategory = bookingData[\"Basic Room Categoty\"];\n  const roomCategoryId = roomCategoryMap[roomCategory] || roomCategory; // Use ID if found, otherwise keep original\n  \n  // Calculate number of nights\n  const checkInDate = new Date(bookingData.check_in);\n  const checkOutDate = new Date(bookingData.check_out);\n  const nightCount = Math.round((checkOutDate - checkInDate) / (1000 * 60 * 60 * 24));\n  \n  // Create the output with mapped IDs\n  results.push({\n    json: {\n      country_data: {\n        country: countryId.toString()\n      },\n      row_number: bookingData.row_number,\n      City: cityId.toString(),\n      \"Hotel Class\": bookingData[\"Hotel Class\"],\n      \"Hotel Name\": bookingData[\"Hotel Name\"],\n      \"Apple Hotel ID\": bookingData[\"Apple Hotel ID\"],\n      \"Basic Room Categoty\": roomCategoryId,\n      \"Extra1\": bookingData[\"Extra1\"] || \"\",\n      check_in: bookingData.check_in,\n      check_out: bookingData.check_out,\n      night: nightCount,\n      meal_type: mealTypeId.toString(),\n      pax: {\n        adult: paxData.adult,\n        cwb: paxData.cwb,\n        cnb: paxData.cnb\n      }\n    }\n  });\n}\n\nreturn results;"
+      },
+      "id": "503eb0be-18cb-4b4f-8ac1-f70d7379e17d",
+      "name": "Map IDs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1936,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1n-xL0h9PHeOhfcpytCouV7_pkYj4BzSMZghqTsKrgYo/edit?usp=sharing",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Sheet10",
+          "mode": "name"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "City",
+              "lookupValue": "={{ $json.current_city }}"
+            }
+          ]
+        },
+        "options": {
+          "returnFirstMatch": false
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1344,
+        496
+      ],
+      "id": "a96ed39b-2992-404e-9fdc-43ebba5e0cf0",
+      "name": "Get Activities Sheet",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "sfSFYP2dSvgG51ze",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get all activity data from Google Sheets\nconst activityItems = $input.all();\n\n// Get all city data from Prepare for Lookup node\nconst cityItems = $('Prepare for Lookup Activities').all();\n\n// Create a map of city data by city name for easy lookup\nconst cityDataMap = {};\nfor (const cityItem of cityItems) {\n  const cityName = cityItem.json.current_city;\n  cityDataMap[cityName] = cityItem.json;\n}\n\n// Process each activity and add booking details\nconst results = [];\n\nfor (const activityItem of activityItems) {\n  const activityData = activityItem.json;\n  const cityName = activityData.City;\n  \n  // Get the corresponding city data\n  const cityData = cityDataMap[cityName];\n  \n  // Remove Aahaas ID, Extra1, Extra2, and meal_type from the data\n  const { 'Aahaas  ID': removedAahaasId, 'Extra1': removedExtra1, 'Extra2': removedExtra2, ...filteredActivityData } = activityData;\n  \n  // Check if Apple Hotel ID contains comma (multiple values)\n  const appleHotelId = filteredActivityData['Apple Hotel ID'];\n  const hasMultipleIds = typeof appleHotelId === 'string' && appleHotelId.includes(',');\n  \n  if (hasMultipleIds) {\n    // Split Apple Hotel ID and Must Do Activity by comma\n    const appleIds = appleHotelId.split(',').map(id => id.trim());\n    const activities = filteredActivityData['Must Do Activity'].split(',').map(act => act.trim());\n    \n    // Create separate records for each ID/Activity pair\n    const maxLength = Math.max(appleIds.length, activities.length);\n    \n    for (let i = 0; i < maxLength; i++) {\n      const record = {\n        country_data: cityData ? cityData.country_data : { country: \"Sri Lanka\" },\n        row_number: filteredActivityData.row_number,\n        City: filteredActivityData.City,\n        'Lifestyle  Category': filteredActivityData['Lifestyle  Category'],\n        'Must Do Activity': activities[i] || activities[0],\n        'Apple Hotel ID': appleIds[i] || appleIds[0]\n      };\n      \n      // Add city data if available (without meal_type)\n      if (cityData) {\n        record.check_in = cityData.destination_data.check_in;\n        record.check_out = cityData.destination_data.check_out;\n      }\n      \n      results.push({ json: record });\n    }\n  } else {\n    // Single ID - add city data without Extra1, Extra2, and meal_type\n    if (cityData) {\n      results.push({\n        json: {\n          country_data: cityData.country_data,\n          ...filteredActivityData,\n          check_in: cityData.destination_data.check_in,\n          check_out: cityData.destination_data.check_out\n        }\n      });\n    } else {\n      // If no matching city data, just return filtered activity data with default country\n      results.push({\n        json: {\n          country_data: { country: \"Sri Lanka\" },\n          ...filteredActivityData\n        }\n      });\n    }\n  }\n}\n\nreturn results;"
+      },
+      "id": "cf32549f-0ee2-4a04-b1c0-3e9fb979b1a6",
+      "name": "Add Booking Details Activities",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1536,
+        496
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://applev2.appletechlabs.com/api/content/place/?name={{ $json.City }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpBearerAuth",
+        "options": {}
+      },
+      "id": "9d197a6d-c678-4400-a360-3d2d8fa46cc1",
+      "name": "Get City ID from API1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1536,
+        880
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "rV15rVRfnenmkroQ",
+          "name": "Bearer Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Country name to ID mapping\nconst countryMap = {\n  \"Sri Lanka\": 62,\n  \"Malaysia\": 63,\n  \"Singapore\": 64,\n  \"India\": 149,\n  \"Vietnam\": 256,\n  \"vietnam\": 256\n};\n\n// Get all API responses\nconst apiResponses = $input.all();\n\n// Get all activity data - try Add Booking Details Activities first, then Reformat Activity Data\nlet activityDataItems = [];\ntry {\n  activityDataItems = $('Add Booking Details Activities').all();\n} catch (error) {\n  // Try Reformat Activity Data (update flow)\n  try {\n    activityDataItems = $('Reformat Activity Data').all();\n  } catch (e) {\n    // No activity data available\n    activityDataItems = [];\n  }\n}\n\n// Get pax data - try from Prepare for Lookup Activities first, then from Apply Changes\nlet paxData = { adult: 2, cwb: 0, cnb: 0 }; // Default\ntry {\n  const prepareData = $('Prepare for Lookup Activities').first().json;\n  paxData = prepareData.genaral_data.pax;\n} catch (error) {\n  // Try to get from Apply Changes (update flow)\n  try {\n    const applyChangesData = $('Apply Changes').first().json;\n    if (applyChangesData.pax_data) {\n      paxData = applyChangesData.pax_data;\n    }\n  } catch (e) {\n    // Use default pax\n  }\n}\n\n// Process each activity item\nconst results = [];\n\nfor (let i = 0; i < apiResponses.length; i++) {\n  const apiResponse = apiResponses[i].json;\n  const activityData = activityDataItems[i].json;\n  \n  let cityId = activityData.City; // Default to original city name if not found\n  \n  // Extract city ID from API response\n  if (apiResponse && apiResponse.body && Array.isArray(apiResponse.body) && apiResponse.body.length > 0) {\n    // Find the matching city with the correct country\n    const countryName = activityData.country_data.country;\n    const countryId = countryMap[countryName] || null;\n    \n    // Find city with matching country if possible\n    let cityData = null;\n    if (countryId) {\n      cityData = apiResponse.body.find(city => city.country === countryId);\n    }\n    \n    // If no match with country, use the first result\n    if (!cityData && apiResponse.body.length > 0) {\n      cityData = apiResponse.body[0];\n    }\n    \n    if (cityData) {\n      cityId = cityData.id;\n    }\n  }\n  \n  // Get country name and map to ID\n  const countryName = activityData.country_data.country;\n  const countryId = countryMap[countryName] || countryName; // Use ID if found, otherwise keep original\n  \n  // Get Apple ID - check all possible field names\n  const appleId = activityData['Apple Hotel ID'] || activityData['Apple ID'] || activityData['Apple Hotel ID'] || \"\";\n  \n  // Create the output with mapped IDs\n  results.push({\n    json: {\n      country_data: {\n        country: countryId.toString()\n      },\n      row_number: activityData.row_number || 1,\n      City: cityId.toString(),\n      \"Apple ID\": appleId,\n      \"Lifestyle  Category\": activityData[\"Lifestyle  Category\"],\n      \"Must Do Activity\": activityData[\"Must Do Activity\"],\n      check_in: activityData.check_in,\n      check_out: activityData.check_out,\n      pax: {\n        adult: paxData.adult,\n        cwb: paxData.cwb,\n        cnb: paxData.cnb\n      }\n    }\n  });\n}\n\nreturn results;"
+      },
+      "id": "02c94e63-5625-4866-8004-d5bc39cb4d51",
+      "name": "Map IDs Activities",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1648,
+        720
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get all items from Map IDs Activities\nconst items = $input.all();\n\n// First: Group by city to process each city separately\nconst cityGroups = {};\n\nfor (const item of items) {\n  const cityId = item.json.City;\n  if (!cityGroups[cityId]) {\n    cityGroups[cityId] = [];\n  }\n  cityGroups[cityId].push(item.json);\n}\n\n// Process each city and assign activity days\nconst results = [];\n\nfor (const cityId in cityGroups) {\n  const cityActivities = cityGroups[cityId];\n  \n  if (cityActivities.length === 0) continue;\n  \n  // Get check-in and check-out dates from first activity\n  const checkIn = new Date(cityActivities[0].check_in);\n  const checkOut = new Date(cityActivities[0].check_out);\n  \n  // Calculate number of nights (activities = nights, not nights + 1)\n  const nightCount = Math.round((checkOut - checkIn) / (1000 * 60 * 60 * 24));\n  \n  // Sort activities by row_number\n  const sortedActivities = cityActivities.sort((a, b) => a.row_number - b.row_number);\n  \n  // Assign one activity per day based on number of nights\n  let dayOffset = 0;\n  \n  for (let i = 0; i < sortedActivities.length && dayOffset < nightCount; i++) {\n    const activity = sortedActivities[i];\n    \n    // Calculate activity day\n    const activityDay = new Date(checkIn);\n    activityDay.setDate(activityDay.getDate() + dayOffset);\n    const activityDayStr = activityDay.toISOString().split('T')[0];\n    \n    // Check if Apple ID contains comma (multiple activities)\n    const appleId = activity[\"Apple ID\"];\n    const hasMultipleActivities = typeof appleId === 'string' && appleId.includes(',');\n    \n    if (hasMultipleActivities) {\n      // Split Apple ID and Must Do Activity by comma\n      const appleIds = appleId.split(',').map(id => id.trim());\n      const activities = activity[\"Must Do Activity\"].split(',').map(act => act.trim());\n      \n      // Create separate items for each activity\n      for (let j = 0; j < appleIds.length; j++) {\n        results.push({\n          json: {\n            country_data: activity.country_data,\n            row_number: activity.row_number,\n            City: activity.City,\n            \"Apple ID\": appleIds[j],\n            \"Lifestyle  Category\": activity[\"Lifestyle  Category\"],\n            \"Must Do Activity\": activities[j] || activities[0],\n            check_in: activity.check_in,\n            check_out: activity.check_out,\n            pax: activity.pax,\n            activity_day: activityDayStr\n          }\n        });\n      }\n    } else {\n      // Single activity - add as-is with activity_day\n      results.push({\n        json: {\n          ...activity,\n          activity_day: activityDayStr\n        }\n      });\n    }\n    \n    dayOffset++;\n  }\n}\n\nreturn results;"
+      },
+      "id": "2de26030-bb8b-4149-a4dc-a484d6104656",
+      "name": "Expand Multiple Activities",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1952,
+        720
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get ALL split items\nconst items = $input.all();\nconst originalData = $('Code').first().json;\n\n// Get arrival date and calculate stays\nconst arrivalDate = originalData.genaral_data.arrival_date;\nconst totalNights = originalData.genaral_data.total_nights || 8; // Get from Code node or default to 8\nconst cityCount = items.length;\nconst nightsPerCity = Math.floor(totalNights / cityCount);\nconst remainderNights = totalNights % cityCount; // Handle remainder nights\n\n// Get city-specific meal plans if available\nconst cityMealMap = originalData.destination_data.city_meal_map;\nconst defaultMealType = originalData.destination_data.meal_type;\n\n// Process each item and calculate check-in/check-out dates\nconst results = [];\nlet currentCheckIn = new Date(arrivalDate);\n\nfor (let i = 0; i < items.length; i++) {\n  const item = items[i];\n  const currentPlace = item.json['destination_data.place'];\n  \n  // Distribute remainder nights to first cities\n  const nightsForThisCity = nightsPerCity + (i < remainderNights ? 1 : 0);\n  \n  // Calculate check-out date (check-in + nights for this city)\n  const checkOutDate = new Date(currentCheckIn);\n  checkOutDate.setDate(checkOutDate.getDate() + nightsForThisCity);\n  \n  // Format dates as YYYY-MM-DD\n  const checkIn = currentCheckIn.toISOString().split('T')[0];\n  const checkOut = checkOutDate.toISOString().split('T')[0];\n  \n  // Determine meal type for this city\n  let mealType = defaultMealType;\n  if (cityMealMap && cityMealMap[currentPlace]) {\n    mealType = cityMealMap[currentPlace];\n  }\n  \n  results.push({\n    json: {\n      current_city: currentPlace,\n      country_data: originalData.country_data,\n      genaral_data: {\n        pax: originalData.genaral_data.pax,\n        market: originalData.genaral_data.market\n      },\n      destination_data: {\n        meal_type: mealType,\n        current_place: currentPlace,\n        check_in: checkIn,\n        check_out: checkOut,\n        nights: nightsForThisCity\n      }\n    }\n  });\n  \n  // Next city's check-in is current city's check-out\n  currentCheckIn = checkOutDate;\n}\n\n// Add arrival_date to the first item only\nif (results.length > 0) {\n  results[0].json.genaral_data.arrival_date = arrivalDate;\n}\n\nreturn results;"
+      },
+      "id": "9caa111d-2c60-430d-ac67-7be68e1d8ced",
+      "name": "Prepare for Lookup Activities",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1184,
+        496
+      ]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "=destination_data.place",
+        "options": {}
+      },
+      "id": "7f3f046b-8b1b-4ced-a00b-828abd722953",
+      "name": "Split Out Places Activities",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1152,
+        608
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "9193f637-7efc-4a33-9bc2-a27a9821945c",
+      "name": "Wait for Both",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        2064,
+        448
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get hotel data from Map IDs node with fallback\nlet hotelItems = [];\ntry {\n  hotelItems = $('Map IDs').all();\n} catch (error) {\n  // Map IDs not executed, this might be an update flow issue\n  // Return empty array to handle gracefully\n  hotelItems = [];\n}\n\nif (hotelItems.length === 0) {\n  throw new Error('No hotel data available. Please ensure the workflow executes correctly.');\n}\n\nconst hotelData = hotelItems.map(item => item.json);\n\n// Get activities data from Expand Multiple Activities node with fallback\nlet activityItems = [];\nlet activitiesData = [];\ntry {\n  activityItems = $('Expand Multiple Activities').all();\n  activitiesData = activityItems.map(item => item.json);\n} catch (error) {\n  // Expand Multiple Activities not executed, try to get from Apply Changes\n  try {\n    const applyChangesData = $('Apply Changes').first().json;\n    if (applyChangesData.activity_data && Array.isArray(applyChangesData.activity_data)) {\n      activitiesData = applyChangesData.activity_data.map(activity => ({\n        \"Apple ID\": activity['Apple Hotel ID'] || activity['Apple ID'] || '',\n        \"Lifestyle  Category\": activity['Lifestyle  Category'] || '',\n        \"Must Do Activity\": activity['Must Do Activity'] || '',\n        activity_day: activity.check_in, // Use check_in as activity day for updates\n        pax: { adult: 2, cwb: 0, cnb: 0 }, // Will be overridden below\n        City: activity.City,\n        check_in: activity.check_in,\n        check_out: activity.check_out\n      }));\n    }\n  } catch (e) {\n    // No activities available, set empty array\n    activitiesData = [];\n  }\n}\n\n// Country mapping (using the ID directly from the data)\nconst countryId = hotelData.length > 0 ? parseInt(hotelData[0].country_data.country) : 62;\n\n// Get arrival date and pax - try from Code node first, then from hotel data or Apply Changes\nlet arrivalDate = '';\nlet pax = { adult: 2, cwb: 0, cnb: 0 }; // Default values\n\ntry {\n  // Try to get from Code node (new booking flow)\n  const originalData = $('Code').first().json;\n  arrivalDate = originalData.genaral_data.arrival_date;\n  pax = originalData.genaral_data.pax;\n} catch (error) {\n  // Code node not executed - this is an update flow\n  // Get arrival date from first hotel's check_in date\n  if (hotelData.length > 0) {\n    arrivalDate = hotelData[0].check_in;\n    pax = hotelData[0].pax || pax;\n  }\n  \n  // Also try to get from Apply Changes node\n  try {\n    const applyChangesData = $('Apply Changes').first().json;\n    if (applyChangesData.pax_data) {\n      pax = applyChangesData.pax_data;\n    }\n    // Get arrival date from first hotel in hotel_data\n    if (applyChangesData.hotel_data && applyChangesData.hotel_data.length > 0) {\n      arrivalDate = applyChangesData.hotel_data[0].check_in;\n    }\n  } catch (e) {\n    // Use values from hotel data\n  }\n}\n\n// Helper function to convert date from YYYY-MM-DD to DD/MM/YYYY\nfunction formatDate(dateStr) {\n  const date = new Date(dateStr);\n  const day = String(date.getDate()).padStart(2, '0');\n  const month = String(date.getMonth() + 1).padStart(2, '0');\n  const year = date.getFullYear();\n  return `${day}/${month}/${year}`;\n}\n\nconst arrivalDateFormatted = formatDate(arrivalDate);\n\n// Build destination_data - places with first and last city repeated\nconst places = [];\nconst placePretendType = [];\nconst transportAvailability = [];\n\n// Extract unique places in order from hotel data\nconst seenPlaces = [];\nfor (const hotel of hotelData) {\n  const cityId = parseInt(hotel.City);\n  if (!seenPlaces.includes(cityId)) {\n    seenPlaces.push(cityId);\n  }\n}\n\n// Add first city at the beginning (arrival city with pretend_type 2)\nif (seenPlaces.length > 0) {\n  places.push(seenPlaces[0]);\n  placePretendType.push(2); // Arrival city\n}\n\n// Add all cities (pretend_type 1)\nfor (const cityId of seenPlaces) {\n  places.push(cityId);\n  placePretendType.push(1); // Normal stay\n}\n\n// Add last city again (departure city with pretend_type 3)\nif (seenPlaces.length > 0) {\n  places.push(seenPlaces[seenPlaces.length - 1]);\n  placePretendType.push(3); // Departure city\n}\n\n// Transportation availability - one less than total places count\nfor (let i = 0; i < places.length - 1; i++) {\n  transportAvailability.push(1); // Transport available between cities\n}\n\n// Build accommodation_data\nconst accommodations = [];\nconst hotels = [];\n\nfor (const hotel of hotelData) {\n  // Ensure all required fields are present and properly typed\n  const hotelObj = {\n    hotel: parseInt(hotel[\"Apple Hotel ID\"]) || 0,\n    place: parseInt(hotel.City),\n    check_in: formatDate(hotel.check_in),\n    check_out: formatDate(hotel.check_out),\n    nights: parseInt(hotel.night),\n    provider: \"local\",\n    extrabed: 0,\n    driver_accommodation: 0\n  };\n  \n  // Add room_category and meal_type only if hotel ID is not 0\n  if (hotelObj.hotel !== 0) {\n    hotelObj.room_category = parseInt(hotel[\"Basic Room Categoty\"]) || 9;\n    hotelObj.meal_type = parseInt(hotel.meal_type) || 1;\n    hotelObj.room_type = [\n      {\n        id: 2,\n        count: 1\n      }\n    ];\n  } else {\n    // Hotel 0 means no hotel, add transportation flag\n    hotelObj.transportation = 1;\n  }\n  \n  hotels.push(hotelObj);\n  accommodations.push(hotelObj.hotel === 0 ? 2 : 1); // 2 for no accommodation, 1 for hotel\n}\n\n// Build tours_data from activities\nconst toursData = [];\n\nfor (const activity of activitiesData) {\n  // Calculate day number from arrival date\n  const activityDate = new Date(activity.activity_day);\n  const arrivalDateObj = new Date(arrivalDate);\n  const dayNumber = Math.floor((activityDate - arrivalDateObj) / (1000 * 60 * 60 * 24)) + 1;\n  \n  // Determine type based on Lifestyle Category\n  const category = activity[\"Lifestyle  Category\"];\n  let type = \"attraction\"; // default\n  \n  if (category && category.toLowerCase().includes('city tour')) {\n    type = \"city_tour\";\n  } else if (category && category.toLowerCase().includes('excursion')) {\n    type = \"excursion\";\n  } else if (category && category.toLowerCase().includes('attraction')) {\n    type = \"attraction\";\n  }\n  \n  const tourObj = {\n    id: parseInt(activity[\"Apple ID\"]),\n    day: dayNumber,\n    pax: {\n      adult: parseInt(activity.pax?.adult || pax.adult),\n      cwb: parseInt(activity.pax?.cwb || pax.cwb),\n      cnb: parseInt(activity.pax?.cnb || pax.cnb)\n    },\n    type: type\n  };\n  \n  toursData.push(tourObj);\n}\n\n// Build the final API body matching the exact structure\nconst apiBody = {\n  config: {\n    status: 1,\n    tour_session: Math.floor(Date.now() / 1000), // Unix timestamp in seconds\n    tour_type: 3,\n    // Random 6-digit number\n  },\n  country_data: {\n    country: countryId\n  },\n  genaral_data: {\n    arrival_date: arrivalDateFormatted,\n    pax: {\n      adult: parseInt(pax.adult),\n      cwb: parseInt(pax.cwb),\n      cnb: parseInt(pax.cnb)\n    },\n    market: 1\n  },\n  destination_data: {\n    place: places,\n    place_pretend_type: placePretendType,\n    transport_availability: transportAvailability\n  },\n  accommodation_data: {\n    accommodation: accommodations,\n    hotel: hotels\n  },\n  tours_data: toursData,\n  markup_data: {\n    markup_amount: \"10\",\n    markup_type: \"1\",\n    markup_amount_child: \"10\",\n    markup_type_child: \"1\",\n    save_type: \"save\"\n  }\n};\n\nreturn { json: apiBody };"
+      },
+      "id": "9c5ed8e6-4470-4e60-910b-bf8bf79434ea",
+      "name": "Build API Body",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2240,
+        448
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://applev2.appletechlabs.com/api/booking/save",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpBearerAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "f85f2527-92d6-40ce-8107-2e3cad746a9d",
+      "name": "Send to Backend API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2400,
+        448
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "rV15rVRfnenmkroQ",
+          "name": "Bearer Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the API response from Send to Backend API\nconst apiResponse = $input.first().json;\n\n// Extract quotation_no from the response body\nlet quotationNo = '';\nif (apiResponse && apiResponse.body && apiResponse.body.quotation_no) {\n  quotationNo = apiResponse.body.quotation_no;\n}\n\n// Get hotel data - try Add Booking Details first, then Map IDs (which has the data in both flows)\nlet hotelData = [];\ntry {\n  const hotelItems = $('Add Booking Details').all();\n  hotelData = hotelItems.map(item => ({\n    Country: item.json.country_data.country,\n    City: item.json.City,\n    'Hotel Class': item.json['Hotel Class'],\n    'Hotel Name': item.json['Hotel Name'],\n    'Apple Hotel ID': item.json['Apple Hotel ID'],\n    'Basic Room Categoty': item.json['Basic Room Categoty'],\n    check_in: item.json.check_in,\n    check_out: item.json.check_out,\n    meal_type: item.json.meal_type\n  }));\n} catch (error) {\n  // Add Booking Details not executed - try to get from Map IDs (update flow)\n  try {\n    const mapIdsItems = $('Map IDs').all();\n    hotelData = mapIdsItems.map(item => ({\n      Country: item.json.country_data.country,\n      City: item.json.City,\n      'Hotel Class': item.json['Hotel Class'],\n      'Hotel Name': item.json['Hotel Name'],\n      'Apple Hotel ID': item.json['Apple Hotel ID'],\n      'Basic Room Categoty': item.json['Basic Room Categoty'],\n      check_in: item.json.check_in,\n      check_out: item.json.check_out,\n      meal_type: item.json.meal_type\n    }));\n  } catch (e) {\n    // No hotel data available\n    hotelData = [];\n  }\n}\n\n// Get activity data - try Add Booking Details Activities first, then Expand Multiple Activities\nlet activityData = [];\ntry {\n  const activityItems = $('Add Booking Details Activities').all();\n  activityData = activityItems.map(item => ({\n    Country: item.json.country_data.country,\n    City: item.json.City,\n    'Apple Hotel ID': item.json['Apple Hotel ID'] || item.json['Apple ID'] || '',\n    'Lifestyle  Category': item.json['Lifestyle  Category'],\n    'Must Do Activity': item.json['Must Do Activity'],\n    check_in: item.json.check_in,\n    check_out: item.json.check_out\n  }));\n} catch (error) {\n  // Add Booking Details Activities not executed - try Expand Multiple Activities (update flow)\n  try {\n    const expandItems = $('Expand Multiple Activities').all();\n    activityData = expandItems.map(item => ({\n      Country: item.json.country_data.country,\n      City: item.json.City,\n      'Apple Hotel ID': item.json['Apple ID'] || '',\n      'Lifestyle  Category': item.json['Lifestyle  Category'],\n      'Must Do Activity': item.json['Must Do Activity'],\n      check_in: item.json.check_in,\n      check_out: item.json.check_out\n    }));\n  } catch (e) {\n    // No activity data available\n    activityData = [];\n  }\n}\n\n// Get pax data from Code node, Map IDs, or Build API Body\nlet paxData = { adult: 2, cwb: 0, cnb: 0 }; // Default\ntry {\n  const codeData = $('Code').first().json;\n  paxData = codeData.genaral_data.pax;\n} catch (error) {\n  // Try from Map IDs (has pax in both flows)\n  try {\n    const mapIdsData = $('Map IDs').first().json;\n    if (mapIdsData.pax) {\n      paxData = mapIdsData.pax;\n    }\n  } catch (e) {\n    // Try from Build API Body\n    try {\n      const apiBodyData = $('Build API Body').first().json;\n      if (apiBodyData.genaral_data && apiBodyData.genaral_data.pax) {\n        paxData = apiBodyData.genaral_data.pax;\n      }\n    } catch (err) {\n      // Use default pax\n    }\n  }\n}\n\n// Convert hotel data to JSON string for hotel_body column\nconst hotelBody = JSON.stringify(hotelData);\n\n// Convert activity data to JSON string for activity_body column\nconst activityBody = JSON.stringify(activityData);\n\n// Convert pax data to JSON string\nconst paxBody = JSON.stringify(paxData);\n\nreturn {\n  json: {\n    quotation_no: quotationNo,\n    hotel_body: hotelBody,\n    activity_body: activityBody,\n    pax_data: paxBody,\n    created_at: new Date().toISOString()\n  }\n};"
+      },
+      "id": "b00dd30f-0ea7-4b53-8470-76eba49bee58",
+      "name": "Prepare Google Sheets Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2560,
+        448
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1GIIdAEtC5orkzAAfBdZHsyWQZFQdqK8-9oy1qXSxsyo/edit?usp=sharing",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Sheet1",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "quotation_no": "={{ $json.quotation_no }}",
+            "hotel_body": "={{ $json.hotel_body }}",
+            "activity_body": "={{ $json.activity_body }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "quotation_no",
+              "displayName": "quotation_no",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "hotel_body",
+              "displayName": "hotel_body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "activity_body",
+              "displayName": "activity_body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "d8af1053-4f79-43a6-9430-68a2e0341dd0",
+      "name": "Store in Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2720,
+        448
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "sfSFYP2dSvgG51ze",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the quotation_no from Prepare Google Sheets Data or Send to Backend API\nlet quotationNo = '';\n\ntry {\n  const sheetsData = $('Prepare Google Sheets Data').first().json;\n  quotationNo = sheetsData.quotation_no || '';\n} catch (error) {\n  // Try from Send to Backend API\n  try {\n    const apiData = $('Send to Backend API').first().json;\n    if (apiData.body && apiData.body.quotation_no) {\n      quotationNo = apiData.body.quotation_no;\n    }\n  } catch (e) {\n    quotationNo = 'Error retrieving quotation number';\n  }\n}\n\nreturn {\n  json: {\n    quotation_no: quotationNo,\n    status: 'success',\n    message: 'Your request has been created successfully'\n  }\n};"
+      },
+      "id": "426f4e68-8f52-4ddb-b889-6e4b79375d94",
+      "name": "Prepare Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2880,
+        448
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "ebfa2bdd-87d5-4979-af59-bced6d107fe0",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        3040,
+        448
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.chatInput }}",
+              "rightValue": "change|update|modify",
+              "operator": {
+                "type": "string",
+                "operation": "regex"
+              },
+              "id": "c824c0b4-542a-4004-a518-31e2d3eabcf0"
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "666820b6-7529-4e15-9ba9-ca5d7370f21b",
+      "name": "Is Update Request?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        32,
+        592
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the AI agent's output\nconst aiOutput = $input.first().json.output || $input.first().json.chatInput || '';\n\n// Extract quotation_no from the message\nlet quotationNo = '';\n\n// Pattern 1: \"quotation_no 291179\" or \"quotation_no: 291179\"\nconst quotePattern1 = /quotation[_\\s-]*no[:\\s]+(\\d+)/i;\nconst match1 = aiOutput.match(quotePattern1);\nif (match1) {\n  quotationNo = match1[1].trim();\n}\n\n// Pattern 2: If not found, try \"under this quotation_no\" or just numbers after \"quotation\"\nif (!quotationNo) {\n  const quotePattern2 = /(?:quotation|booking|quote)[_\\s-]*(?:no)?[:\\s]*([A-Z0-9-]+)/i;\n  const match2 = aiOutput.match(quotePattern2);\n  if (match2) {\n    quotationNo = match2[1].trim();\n  }\n}\n\n// Extract what needs to be changed\nlet changeType = '';\nlet newValue = '';\n\n// Check for passenger/pax changes\nif (aiOutput.toLowerCase().includes('passenger') || aiOutput.toLowerCase().includes('adults') || aiOutput.toLowerCase().includes('child')) {\n  changeType = 'passengers';\n  // Extract passenger counts\n  const adultPattern = /(\\d+)\\s*adult/i;\n  const childPattern = /(\\d+)\\s*child/i;\n  const adultMatch = aiOutput.match(adultPattern);\n  const childMatch = aiOutput.match(childPattern);\n  \n  let paxDetails = {};\n  if (adultMatch) paxDetails.adults = parseInt(adultMatch[1]);\n  if (childMatch) paxDetails.children = parseInt(childMatch[1]);\n  \n  newValue = JSON.stringify(paxDetails);\n}\n\n// Check for duration/nights changes\nif (aiOutput.toLowerCase().includes('night') || aiOutput.toLowerCase().includes('duration')) {\n  if (!changeType) changeType = 'duration';\n  const nightPattern = /(\\d+)\\s*night/i;\n  const nightMatch = aiOutput.match(nightPattern);\n  if (nightMatch && !newValue) {\n    newValue = nightMatch[1];\n  }\n}\n\n// Check for date changes\nif (aiOutput.toLowerCase().includes('start date') || aiOutput.toLowerCase().includes('arrival date') || aiOutput.toLowerCase().includes('check-in')) {\n  changeType = 'start_date';\n  // Extract date in format YYYY-MM-DD\n  const datePattern = /(\\d{4})[-\\/](\\d{1,2})[-\\/](\\d{1,2})/;\n  const dateMatch = aiOutput.match(datePattern);\n  if (dateMatch) {\n    newValue = `${dateMatch[1]}-${dateMatch[2].padStart(2, '0')}-${dateMatch[3].padStart(2, '0')}`;\n  }\n}\n\n// Check for hotel changes\nif (aiOutput.toLowerCase().includes('hotel') && (aiOutput.toLowerCase().includes('change') || aiOutput.toLowerCase().includes('update'))) {\n  if (!changeType) changeType = 'hotel';\n  const hotelPattern = /hotel[:\\s]+([A-Za-z\\s]+?)(?:in|for|to|,|$)/i;\n  const hotelMatch = aiOutput.match(hotelPattern);\n  if (hotelMatch && !newValue) {\n    newValue = hotelMatch[1].trim();\n  }\n}\n\n// Check for city changes\nif (aiOutput.toLowerCase().includes('city') || aiOutput.toLowerCase().includes('destination')) {\n  if (!changeType) changeType = 'city';\n  const cityPattern = /(?:city|destination)[:\\s]+([A-Za-z\\s]+?)(?:to|,|$)/i;\n  const cityMatch = aiOutput.match(cityPattern);\n  if (cityMatch && !newValue) {\n    newValue = cityMatch[1].trim();\n  }\n}\n\nreturn {\n  json: {\n    quotation_no: quotationNo,\n    change_type: changeType,\n    new_value: newValue,\n    original_message: aiOutput\n  }\n};"
+      },
+      "id": "21a0d5c0-f1e7-4d3c-ac8a-77e5b67e0638",
+      "name": "Parse Update Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        352,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1GIIdAEtC5orkzAAfBdZHsyWQZFQdqK8-9oy1qXSxsyo/edit?usp=sharing",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Sheet1",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "id": "488c9a51-c1bc-4f11-88ee-9bd688930418",
+      "name": "Get Booking from Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        512,
+        192
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "sfSFYP2dSvgG51ze",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the booking data from Google Sheets\nconst bookingData = $input.first().json;\nconst updateRequest = $('Parse Update Request').first().json;\n\n// Parse hotel_body, activity_body, and pax_data from JSON strings\nlet hotelBody = [];\nlet activityBody = [];\nlet paxData = { adult: 2, cwb: 0, cnb: 0 }; // Default\n\ntry {\n  hotelBody = JSON.parse(bookingData.hotel_body || '[]');\n  activityBody = JSON.parse(bookingData.activity_body || '[]');\n  if (bookingData.pax_data) {\n    paxData = JSON.parse(bookingData.pax_data);\n  }\n} catch (error) {\n  return { json: { error: 'Failed to parse booking data' } };\n}\n\n// Apply the changes based on change_type\nconst changeType = updateRequest.change_type;\nconst newValue = updateRequest.new_value;\n\nif (changeType === 'start_date' && newValue) {\n  // Calculate the difference in days\n  const oldDate = new Date(hotelBody[0]?.check_in || '');\n  const newDate = new Date(newValue);\n  const dayDiff = Math.floor((newDate - oldDate) / (1000 * 60 * 60 * 24));\n  \n  // Update all check-in and check-out dates in hotel_body\n  hotelBody = hotelBody.map(hotel => {\n    const oldCheckIn = new Date(hotel.check_in);\n    const oldCheckOut = new Date(hotel.check_out);\n    \n    const newCheckIn = new Date(oldCheckIn);\n    newCheckIn.setDate(newCheckIn.getDate() + dayDiff);\n    \n    const newCheckOut = new Date(oldCheckOut);\n    newCheckOut.setDate(newCheckOut.getDate() + dayDiff);\n    \n    return {\n      ...hotel,\n      check_in: newCheckIn.toISOString().split('T')[0],\n      check_out: newCheckOut.toISOString().split('T')[0],\n      pax: paxData\n    };\n  });\n  \n  // Update all dates in activity_body\n  activityBody = activityBody.map(activity => {\n    const oldCheckIn = new Date(activity.check_in);\n    const oldCheckOut = new Date(activity.check_out);\n    \n    const newCheckIn = new Date(oldCheckIn);\n    newCheckIn.setDate(newCheckIn.getDate() + dayDiff);\n    \n    const newCheckOut = new Date(oldCheckOut);\n    newCheckOut.setDate(newCheckOut.getDate() + dayDiff);\n    \n    return {\n      ...activity,\n      check_in: newCheckIn.toISOString().split('T')[0],\n      check_out: newCheckOut.toISOString().split('T')[0]\n    };\n  });\n}\n\n// Create output structure that mimics the original workflow\nconst output = {\n  hotel_data: hotelBody,\n  activity_data: activityBody,\n  pax_data: paxData,\n  quotation_no: bookingData.quotation_no,\n  change_applied: {\n    type: changeType,\n    value: newValue\n  }\n};\n\nreturn { json: output };"
+      },
+      "id": "c8071552-94e4-48fb-a764-230666228bcf",
+      "name": "Apply Changes",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        624,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the updated data\nconst updatedData = $input.first().json;\nconst hotelData = updatedData.hotel_data || [];\nconst activityData = updatedData.activity_data || [];\n\n// Create items for each hotel (similar to Add Booking Details output)\nconst results = hotelData.map(hotel => ({\n  json: {\n    country_data: {\n      country: hotel.Country\n    },\n    City: hotel.City,\n    'Hotel Class': hotel['Hotel Class'],\n    'Hotel Name': hotel['Hotel Name'],\n    'Apple Hotel ID': hotel['Apple Hotel ID'],\n    'Basic Room Categoty': hotel['Basic Room Categoty'],\n    check_in: hotel.check_in,\n    check_out: hotel.check_out,\n    meal_type: hotel.meal_type\n  }\n}));\n\nreturn results;"
+      },
+      "id": "7b447ed6-f612-4cdf-bef0-348371f86f03",
+      "name": "Reformat Hotel Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1248,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the updated data\nconst updatedData = $('Apply Changes').first().json;\nconst activityData = updatedData.activity_data || [];\nconst paxData = updatedData.pax_data || { adult: 2, cwb: 0, cnb: 0 };\n\n// Create items for each activity (similar to Add Booking Details Activities output)\nconst results = activityData.map(activity => ({\n  json: {\n    country_data: {\n      country: activity.Country\n    },\n    City: activity.City,\n    'Apple Hotel ID': activity['Apple Hotel ID'] || '',\n    'Lifestyle  Category': activity['Lifestyle  Category'] || '',\n    'Must Do Activity': activity['Must Do Activity'] || '',\n    check_in: activity.check_in,\n    check_out: activity.check_out\n  }\n}));\n\nreturn results;"
+      },
+      "id": "829c4789-1532-47ef-a891-a78a8837593e",
+      "name": "Reformat Activity Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        736,
+        880
+      ]
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        352,
+        784
+      ],
+      "id": "194f9cfc-97e5-4980-bab9-b6edd509ab42",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "agent": "conversationalAgent",
+        "promptType": "define",
+        "text": "=You are a travel quotation update assistant. Analyze the user's update request and extract the specific changes they want to make.\n\nUser input: {{ $json.chatInput }}\n\nExtract and identify:\n1. **Quotation Number**: Look for patterns like \"quotation_no 291179\", \"booking 291179\", \"quote 291179\", or \"under quotation_no\"\n2. **What to Change**: Identify what the user wants to modify:\n   - **Dates**: \"change start date to 2025-12-24\", \"arrival date\", \"check-in date\"\n   - **Passengers (Pax)**: \"change to 3 adults 1 child\", \"5 adults\", \"2 children\"\n   - **Duration**: \"change to 5 nights\", \"extend to 7 nights\", \"reduce to 4 nights\"\n   - **Hotels**: \"change hotel to [hotel name]\", \"upgrade to 5-star\"\n   - **Cities**: \"add Ella\", \"remove Kandy\", \"change cities\"\n   - **Meal Plan**: \"change to half board\", \"full board\", \"all inclusive\"\n3. **New Values**: Extract the specific new values for each change\n\nIMPORTANT: If the user mentions a quotation number, this is an UPDATE request, not a new booking.\n\nFormat your output as:\n\"UPDATE REQUEST for quotation_no [NUMBER]: Change [FIELD] to [NEW VALUE]\"\n\nExamples:\n- Input: \"Change the 3 adults 1 child in 5 nights under quotation_no 291179\"\n  Output: \"UPDATE REQUEST for quotation_no 291179: Change passengers to 3 adults and 1 child, change duration to 5 nights\"\n\n- Input: \"I want to change start date to 2025-12-24 for booking 12345\"\n  Output: \"UPDATE REQUEST for quotation_no 12345: Change arrival date to December 24, 2025\"\n\n- Input: \"Update quotation 98765 to 5-star hotels with half board\"\n  Output: \"UPDATE REQUEST for quotation_no 98765: Change hotel category to 5-star, change meal plan to half board\"\n\n- Input: \"Extend the trip to 7 nights for quote 55555\"\n  Output: \"UPDATE REQUEST for quotation_no 55555: Change duration to 7 nights\"\n\nIf no quotation number is found, respond: \"ERROR: No quotation number provided. Please specify the booking/quotation number you want to update.\"",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=You are a professional travel quotation assistant. Create concise, formatted summaries of customer travel requests. Always use the exact format specified and calculate dates accurately. Pay special attention to hotel star categories, meal plans mentioned by the user and which cities they apply to."
+        }
+      },
+      "id": "681e0812-b182-4322-a6ae-ebb713f14675",
+      "name": "AI Agent1",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        64,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o",
+        "options": {}
+      },
+      "id": "e4b3c6b8-d18e-4f6d-85aa-e4779faa5b3b",
+      "name": "OpenAI Chat Model1",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [
+        64,
+        384
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "EghJAjFZejQIbcUf",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "085ddfb8-f53a-456e-b662-85de50da8147",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -272,
+        816
+      ],
+      "id": "c0c84a16-8d00-474e-a990-c30df398cf7c",
+      "name": "Webhook",
+      "webhookId": "085ddfb8-f53a-456e-b662-85de50da8147"
+    },
+    {
+      "parameters": {
+        "jsCode": "\n$input.first().json.body[\"action\"]=\"sendMessage\"\nreturn $input.first().json.body;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        48,
+        816
+      ],
+      "id": "98910c86-6ec4-4061-ac1b-f5727d3bccea",
+      "name": "Code in JavaScript"
+    }
+  ],
+  "pinData": {
+    "Webhook": [
+      {
+        "json": {
+          "headers": {
+            "host": "aahaas-ai.app.n8n.cloud",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36",
+            "content-length": "171",
+            "accept": "*/*",
+            "accept-encoding": "gzip, br",
+            "accept-language": "en-US,en;q=0.9",
+            "cdn-loop": "cloudflare; loops=1; subreqs=1",
+            "cf-connecting-ip": "2402:d000:8100:104:a94f:4bba:ffc9:92f9",
+            "cf-ew-via": "15",
+            "cf-ipcountry": "LK",
+            "cf-ray": "9a1df884f513e899-AMS",
+            "cf-visitor": "{\"scheme\":\"https\"}",
+            "cf-worker": "n8n.cloud",
+            "content-type": "application/json",
+            "origin": "null",
+            "priority": "u=1, i",
+            "sec-ch-ua": "\"Chromium\";v=\"142\", \"Google Chrome\";v=\"142\", \"Not_A Brand\";v=\"99\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Windows\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "x-forwarded-for": "2402:d000:8100:104:a94f:4bba:ffc9:92f9, 104.23.172.89",
+            "x-forwarded-host": "aahaas-ai.app.n8n.cloud",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "traefik-prod-users-gwc-37-d47f5fc8c-zjdhc",
+            "x-is-trusted": "yes",
+            "x-real-ip": "2402:d000:8100:104:a94f:4bba:ffc9:92f9"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "chatInput": "I want to travel sri lanka in kandy, galle and colombo for 6 days with 4 adults on 15Jan. Need budget package",
+            "sessionId": "session_1763698287038_myt121gv4"
+          },
+          "webhookUrl": "https://aahaas-ai.app.n8n.cloud/webhook/d7aa38a3-c48f-4c89-b557-292512a35342",
+          "executionMode": "production"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Is Update Request?": {
+      "main": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Update Request": {
+      "main": [
+        [
+          {
+            "node": "Get Booking from Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Booking from Sheets": {
+      "main": [
+        [
+          {
+            "node": "Apply Changes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apply Changes": {
+      "main": [
+        [
+          {
+            "node": "Reformat Hotel Data",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Reformat Activity Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reformat Hotel Data": {
+      "main": [
+        [
+          {
+            "node": "Get City ID from API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reformat Activity Data": {
+      "main": [
+        [
+          {
+            "node": "Get City ID from API1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Split Out Places Activities",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Split Out Places",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out Places": {
+      "main": [
+        [
+          {
+            "node": "Prepare for Lookup",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare for Lookup": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "Add Booking Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add Booking Details": {
+      "main": [
+        [
+          {
+            "node": "Get City ID from API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get City ID from API": {
+      "main": [
+        [
+          {
+            "node": "Map IDs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Map IDs": {
+      "main": [
+        [
+          {
+            "node": "Wait for Both",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Activities Sheet": {
+      "main": [
+        [
+          {
+            "node": "Add Booking Details Activities",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add Booking Details Activities": {
+      "main": [
+        [
+          {
+            "node": "Get City ID from API1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get City ID from API1": {
+      "main": [
+        [
+          {
+            "node": "Map IDs Activities",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Map IDs Activities": {
+      "main": [
+        [
+          {
+            "node": "Expand Multiple Activities",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Expand Multiple Activities": {
+      "main": [
+        [
+          {
+            "node": "Wait for Both",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Prepare for Lookup Activities": {
+      "main": [
+        [
+          {
+            "node": "Get Activities Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out Places Activities": {
+      "main": [
+        [
+          {
+            "node": "Prepare for Lookup Activities",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for Both": {
+      "main": [
+        [
+          {
+            "node": "Build API Body",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build API Body": {
+      "main": [
+        [
+          {
+            "node": "Send to Backend API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send to Backend API": {
+      "main": [
+        [
+          {
+            "node": "Prepare Google Sheets Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Google Sheets Data": {
+      "main": [
+        [
+          {
+            "node": "Store in Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "Parse Update Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Is Update Request?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store in Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Prepare Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Response": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "b7a2ba64-d64b-4eba-8656-b8bb04e8c4a1",
+  "meta": {
+    "instanceId": "17d27b2dfb2b2db522a38b21373be6719cdc8405743bf3bd19aed8a16c488d05"
+  },
+  "id": "7u88Jk8Q1AwQ0hbX",
+  "tags": []
+}

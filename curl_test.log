@@ -1,0 +1,42 @@
+Note: Unnecessary use of -X or --request, POST is already inferred.
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0* Host aahaas-ai.app.n8n.cloud:443 was resolved.
+* IPv6: (none)
+* IPv4: 172.67.72.185, 104.26.12.13, 104.26.13.13
+*   Trying 172.67.72.185:443...
+* schannel: disabled automatic use of client certificate
+* ALPN: curl offers http/1.1
+* ALPN: server accepted http/1.1
+* Connected to aahaas-ai.app.n8n.cloud (172.67.72.185) port 443
+* using HTTP/1.x
+> POST /webhook/085ddfb8-f53a-456e-b662-85de50da8147 HTTP/1.1
+> Host: aahaas-ai.app.n8n.cloud
+> User-Agent: curl/8.14.1
+> Accept: */*
+> Content-Type: application/json
+> Content-Length: 60
+> 
+} [60 bytes data]
+* upload completely sent off: 60 bytes
+100    60    0     0  100    60      0     52  0:00:01  0:00:01 --:--:--    52100    60    0     0  100    60      0     27  0:00:02  0:00:02 --:--:--    27100    60    0     0  100    60      0     18  0:00:03  0:00:03 --:--:--    18100    60    0     0  100    60      0     14  0:00:04  0:00:04 --:--:--    14100    60    0     0  100    60      0     11  0:00:05  0:00:05 --:--:--    11100    60    0     0  100    60      0      9  0:00:06  0:00:06 --:--:--     0100    60    0     0  100    60      0      8  0:00:07  0:00:07 --:--:--     0100    60    0     0  100    60      0      7  0:00:08  0:00:08 --:--:--     0* schannel: remote party requests renegotiation
+* schannel: renegotiating SSL/TLS connection
+* schannel: SSL/TLS connection renegotiated
+< HTTP/1.1 200 OK
+< Date: Wed, 17 Dec 2025 12:16:32 GMT
+< Content-Type: application/json; charset=utf-8
+< Content-Length: 0
+< Connection: keep-alive
+< CF-Ray: 9af659f7f8114067-SIN
+< CF-Cache-Status: DYNAMIC
+< Server: cloudflare
+< Strict-Transport-Security: max-age=15552000; includeSubDomains
+< Vary: Accept-Encoding, Accept-Encoding
+< referrer-policy: same-origin
+< x-content-type-options: nosniff
+< x-frame-options: SAMEORIGIN
+< Report-To: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=lRbcjETI1k4SawxWxhJUEuS3ENtDpRsvz87CWX84mQuEEA2NONAGHvyh2nkRHNlosv%2BrKDRmYnbb8SHlK9RmDqt0nuEv0VvA0A%2BI3hc3JafomYer%2B1w%3D"}]}
+< Nel: {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+< 
+100    60    0     0  100    60      0      7  0:00:08  0:00:08 --:--:--     0
+* Connection #0 to host aahaas-ai.app.n8n.cloud left intact

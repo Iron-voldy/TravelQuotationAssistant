@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(copy /Y api.backup.js api.js:*)",
+      "Bash(npm install:*)",
+      "Bash(lcp:*)",
+      "Bash(npm start)",
+      "Bash(dir /B:*)",
+      "Bash(npm run build:*)",
+      "Bash(cat:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nFix Vercel deployment and cleanup project\n\n- Add vercel.json with production environment variables\n- Configure REACT_APP_API_URL for production deployment\n- Remove all unnecessary documentation files (.md, .txt)\n- Remove development batch/shell scripts (.bat, .sh)\n- Remove HTML and Postman collection files\n- Update README.md with deployment instructions\n- Clean project structure for production deployment\n\nThis fixes the \"Cannot connect to server\" error on Vercel by properly\nconfiguring the API URL to use https://stagev2.appletechlabs.com/api\ninstead of localhost:8011/proxy/api\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git push:*)",
+      "Bash(git commit:*)",
+      "Bash(curl:*)",
+      "Bash(findstr:*)",
+      "Bash(more:*)",
+      "Bash(tee:*)",
+      "Bash(start get_bearer_token.html)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
