@@ -124,11 +124,6 @@ const LoginPage = () => {
     }
   };
 
-  const handleGoogleLogin = () => {
-    console.log('Google login clicked');
-    alert('Google login will be available soon!');
-  };
-
   return (
     <div className="login-page">
       <div className="login-container">

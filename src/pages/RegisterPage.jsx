@@ -139,11 +139,6 @@ const RegisterPage = () => {
     }
   };
 
-  const handleGoogleSignUp = () => {
-    console.log('Google sign-up clicked');
-    alert('Google sign-up will be available soon!');
-  };
-
   return (
     <div className="register-page">
       <div className="register-container">
@@ -314,19 +309,13 @@ const RegisterPage = () => {
                     />
                     <span>
                       I agree to the{' '}
-                      <a href="#" onClick={(e) => {
-                        e.preventDefault();
-                        setShowTermsModal(true);
-                      }}>
+                      <button type="button" className="link-button" onClick={() => setShowTermsModal(true)}>
                         Terms & Conditions
-                      </a>{' '}
+                      </button>{' '}
                       and{' '}
-                      <a href="#" onClick={(e) => {
-                        e.preventDefault();
-                        setShowPrivacyModal(true);
-                      }}>
+                      <button type="button" className="link-button" onClick={() => setShowPrivacyModal(true)}>
                         Privacy Policy
-                      </a>
+                      </button>
                     </span>
                   </label>
                   {errors.agreeToTerms && <span className="error-message">{errors.agreeToTerms}</span>}

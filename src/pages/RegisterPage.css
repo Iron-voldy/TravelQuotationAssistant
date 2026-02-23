@@ -350,14 +350,25 @@
   line-height: 1.5;
 }
 
-.checkbox-label a {
+.checkbox-label a,
+.link-button {
   color: #004e64;
   font-weight: 600;
   text-decoration: none;
   transition: color 0.2s ease;
 }
 
-.checkbox-label a:hover {
+.link-button {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-size: inherit;
+  font-family: inherit;
+}
+
+.checkbox-label a:hover,
+.link-button:hover {
   color: #006582;
   text-decoration: underline;
 }
