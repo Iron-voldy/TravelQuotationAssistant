@@ -202,6 +202,22 @@ const RegisterPage = () => {
                 </div>
               )}
 
+              {/*
+                ── GOOGLE SIGN-UP ── DISABLED ──
+                Google OAuth sign-up has been removed. To re-enable:
+                  1. Restore the handleGoogleSignUp() handler function.
+                  2. Uncomment the button and divider below.
+
+                <button type="button" className="google-signup-btn" onClick={handleGoogleSignUp}>
+                  <img src="https://www.google.com/favicon.ico" alt="Google" />
+                  Continue with Google
+                </button>
+
+                <div className="divider">
+                  <span>or</span>
+                </div>
+              */}
+
               {/* Registration Form */}
               <form onSubmit={handleSubmit} className="register-form">
                 <div className="form-group">

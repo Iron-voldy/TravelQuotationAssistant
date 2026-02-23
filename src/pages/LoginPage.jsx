@@ -187,6 +187,21 @@ const LoginPage = () => {
                 </div>
               )}
 
+              {/*
+                ── GOOGLE LOGIN ── DISABLED ──
+                Google OAuth login has been removed. To re-enable:
+                  1. Restore the handleGoogleLogin() handler function.
+                  2. Uncomment the button and divider below.
+
+                <button type="button" className="google-login-btn" onClick={handleGoogleLogin}>
+                  <img src="https://www.google.com/favicon.ico" alt="Google" />
+                  Continue with Google
+                </button>
+
+                <div className="divider">
+                  <span>or</span>
+                </div>
+              */}
 
               {/* Login Form */}
               <form onSubmit={handleSubmit} className="login-form">

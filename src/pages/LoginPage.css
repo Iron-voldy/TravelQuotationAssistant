@@ -144,62 +144,67 @@
   font-size: 1.1rem;
 }
 
-/* Google Login Button */
-.google-login-btn {
-  width: 100%;
-  background: white;
-  border: 2px solid #e2e8f0;
-  padding: 14px 20px;
-  border-radius: 12px;
-  font-size: 1rem;
-  font-weight: 600;
-  color: #1a202c;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  transition: all 0.3s ease;
-  margin-bottom: 24px;
-}
+/*
+  ── GOOGLE LOGIN STYLES ── DISABLED ──
+  Uncomment this block to re-enable Google login button and divider styles.
 
-.google-login-btn:hover {
-  border-color: #004e64;
-  background: #f8fafc;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 78, 100, 0.1);
-}
+  .google-login-btn {
+    width: 100%;
+    background: white;
+    border: 2px solid #e2e8f0;
+    padding: 14px 20px;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #1a202c;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    transition: all 0.3s ease;
+    margin-bottom: 24px;
+  }
 
-.google-login-btn img {
-  width: 20px;
-  height: 20px;
-}
+  .google-login-btn:hover {
+    border-color: #004e64;
+    background: #f8fafc;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 78, 100, 0.1);
+  }
 
-/* Divider */
-.divider {
-  position: relative;
-  text-align: center;
-  margin: 24px 0;
-}
+  .google-login-btn img {
+    width: 20px;
+    height: 20px;
+  }
 
-.divider::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: #e2e8f0;
-}
+  --- Divider ---
 
-.divider span {
-  position: relative;
-  background: white;
-  padding: 0 16px;
-  color: #94a3b8;
-  font-size: 0.9rem;
-  font-weight: 600;
-}
+  .divider {
+    position: relative;
+    text-align: center;
+    margin: 24px 0;
+  }
+
+  .divider::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: #e2e8f0;
+  }
+
+  .divider span {
+    position: relative;
+    background: white;
+    padding: 0 16px;
+    color: #94a3b8;
+    font-size: 0.9rem;
+    font-weight: 600;
+  }
+*/
 
 /* Form Styles */
 .login-form {
@@ -477,10 +482,7 @@
     font-size: 0.95rem;
   }
 
-  .google-login-btn {
-    padding: 12px 18px;
-    font-size: 0.95rem;
-  }
+  /* .google-login-btn { padding: 12px 18px; font-size: 0.95rem; } DISABLED */
 }
 
 @media (max-width: 480px) {
@@ -539,10 +541,7 @@
     font-size: 0.9rem;
   }
 
-  .google-login-btn {
-    padding: 11px 16px;
-    font-size: 0.9rem;
-  }
+  /* .google-login-btn { padding: 11px 16px; font-size: 0.9rem; } DISABLED */
 
   .login-btn {
     padding: 12px 20px;
