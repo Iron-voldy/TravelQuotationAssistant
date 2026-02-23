@@ -192,22 +192,6 @@ const LoginPage = () => {
                 </div>
               )}
 
-              {/* Google Login Button */}
-              <button
-                type="button"
-                className="google-login-btn"
-                onClick={handleGoogleLogin}
-              >
-                <img
-                  src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
-                  alt="Google logo"
-                />
-                <span>Continue with Google</span>
-              </button>
-
-              <div className="divider">
-                <span>OR</span>
-              </div>
 
               {/* Login Form */}
               <form onSubmit={handleSubmit} className="login-form">
