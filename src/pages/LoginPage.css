@@ -385,7 +385,8 @@
   font-size: 1.1rem;
 }
 
-/* Register Link */
+/* Register Link - DISABLED (removed from UI) */
+/*
 .register-link {
   text-align: center;
   margin-top: 24px;
@@ -404,6 +405,7 @@
   color: #006582;
   text-decoration: underline;
 }
+*/
 
 /* Responsive */
 @media (max-width: 1024px) {

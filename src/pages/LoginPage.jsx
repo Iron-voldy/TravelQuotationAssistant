@@ -280,15 +280,6 @@ const LoginPage = () => {
                 </button>
               </form>
 
-              <div className="register-link">
-                Don't have an account?{' '}
-                <a href="/register" onClick={(e) => {
-                  e.preventDefault();
-                  navigate('/register');
-                }}>
-                  Create one now
-                </a>
-              </div>
             </div>
           </div>
         </div>
