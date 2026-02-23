@@ -25,7 +25,7 @@ module.exports = function (app) {
       target: 'https://aahaas-ai.app.n8n.cloud',
       changeOrigin: true,
       pathRewrite: {
-        '^/n8n-webhook': '/webhook/48c515db-125a-42bb-9ab5-a1a6c1a3cc3c',
+        '^/n8n-webhook': '/webhook/085ddfb8-f53a-456e-b662-85de50da8147',
       },
       ws: false, // Disable WebSocket proxying
       logLevel: 'silent', // Reduce noise in console

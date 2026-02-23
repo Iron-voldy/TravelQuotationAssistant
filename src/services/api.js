@@ -39,7 +39,7 @@ const getWebhookUrl = () => {
   }
 
   console.log('[WEBHOOK] Using direct n8n webhook URL');
-  return 'https://applehds.app.n8n.cloud/webhook-test/e3073b45-1349-49f2-98c5-ff147e2a278d';
+  return 'https://aahaas-ai.app.n8n.cloud/webhook/085ddfb8-f53a-456e-b662-85de50da8147';
 };
 
 const WEBHOOK_URL = getWebhookUrl();
