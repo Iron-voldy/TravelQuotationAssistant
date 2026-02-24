@@ -29,7 +29,7 @@ const AdminUsers = () => {
         } finally {
             setLoading(false);
         }
-    }, [page, search]);
+    }, [page, search]); // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => { load(); }, [load]);
 

@@ -39,7 +39,7 @@ const DashboardPage = () => {
         } finally {
             setLoading(false);
         }
-    }, [page, statusFilter, search]);
+    }, [page, statusFilter, search]); // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => { loadQuotations(); }, [loadQuotations]);
 

@@ -82,4 +82,5 @@ export const assistantAPI = {
   }
 };
 
-export default { authAPI, chatAPI, quotationAPI, adminAPI, assistantAPI };
+const apiServices = { authAPI, chatAPI, quotationAPI, adminAPI, assistantAPI };
+export default apiServices;

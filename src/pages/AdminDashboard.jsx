@@ -30,7 +30,7 @@ const AdminDashboard = () => {
             }
         };
         load();
-    }, []);
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     const fmt = d => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 

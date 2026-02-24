@@ -39,13 +39,13 @@ export const AuthProvider = ({ children }) => {
           setToken(data.token);
           scheduleRefresh(data.token);
         } else {
-          logout();
+          logout(); // eslint-disable-line react-hooks/exhaustive-deps
         }
       } catch (e) {
         console.error('[AUTH] Token refresh failed:', e.message);
       }
     }, refreshDelay);
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const storedToken = localStorage.getItem('token');

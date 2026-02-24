@@ -32,7 +32,7 @@ const AdminQuotations = () => {
         } finally {
             setLoading(false);
         }
-    }, [page, search, statusFilter]);
+    }, [page, search, statusFilter]); // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => { load(); }, [load]);
 
