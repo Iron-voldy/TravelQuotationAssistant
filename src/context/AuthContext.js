@@ -1,181 +1,126 @@
-import React, { createContext, useState, useContext, useEffect, useCallback, useRef } from 'react';
+import React, { createContext, useState, useContext, useEffect, useCallback, useRef } from 'react'; // eslint-disable-line react-hooks/exhaustive-deps
 
 const AuthContext = createContext(null);
 
-// API Configuration from environment
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://stagev2.appletechlabs.com/api';
-
-// Token refresh helper
-const refreshAuthToken = async (currentToken) => {
-  try {
-    console.log('[TOKEN REFRESH] Attempting to refresh token...');
-    console.log('[TOKEN REFRESH] Using endpoint:', `${API_BASE_URL}/auth/refresh`);
-    const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${currentToken}`,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      }
-    });
-
-    if (!response.ok) {
-      console.error('[TOKEN REFRESH] Server responded with status:', response.status);
-      throw new Error(`Token refresh failed: ${response.status}`);
-    }
-
-    const data = await response.json();
-    console.log('[TOKEN REFRESH] Success! New token received:', {
-      hasAccessToken: !!data.access_token,
-      expiresIn: data.expires_in
-    });
-    return data.access_token;
-  } catch (error) {
-    console.error('[TOKEN REFRESH] Error:', error.message);
-    return null;
-  }
-};
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
 export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
-  const [sessionId, setSessionId] = useState(null); // Stable session identifier for n8n
   const [isLoading, setIsLoading] = useState(true);
-  const [expiresIn, setExpiresIn] = useState(null);
-  const refreshTimeoutRef = useRef(null);
+  const refreshTimerRef = useRef(null);
 
-  // Function to set up token refresh timer
-  const setupTokenRefreshTimer = useCallback((tokenExpiresIn, currentToken) => {
-    // Clear any existing timer
-    if (refreshTimeoutRef.current) {
-      clearTimeout(refreshTimeoutRef.current);
-    }
+  const clearRefreshTimer = () => {
+    if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+  };
 
-    // Refresh token 5 minutes before expiration
-    const refreshTime = (tokenExpiresIn - 300) * 1000;
-    console.log(`[AUTH] Token refresh scheduled in ${Math.round(refreshTime / 1000)}s`);
-
-    refreshTimeoutRef.current = setTimeout(async () => {
-      console.log('🔄 ═══════════════════════════════════════════════════');
-      console.log('🔄 [TOKEN REFRESH] Timer triggered - refreshing token...');
-      console.log('🔄 [TOKEN REFRESH] Old Token:', currentToken);
-      console.log('🔄 ═══════════════════════════════════════════════════');
-      const newToken = await refreshAuthToken(currentToken);
-      if (newToken) {
-        console.log('✅ ═══════════════════════════════════════════════════');
-        console.log('✅ [TOKEN REFRESH] Token refreshed successfully!');
-        console.log('✅ [TOKEN REFRESH] New Token:', newToken);
-        console.log('✅ ═══════════════════════════════════════════════════');
-        // Update both auth token and sessionId so n8n receives the fresh token
-        localStorage.setItem('authToken', newToken);
-        localStorage.setItem('sessionId', newToken);
-        setToken(newToken);
-        setSessionId(newToken);
-        // Reset the timer for the new token (assuming new token also expires in 3600s)
-        setupTokenRefreshTimer(3600, newToken);
-      } else {
-        // If refresh fails, logout
-        console.error('❌ [TOKEN REFRESH] Token refresh failed, logging out');
-        logout();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const scheduleRefresh = useCallback((currentToken) => {
+    clearRefreshTimer();
+    // Refresh token 1 hour before 24h expiry (so at 23h mark)
+    const refreshDelay = 23 * 60 * 60 * 1000;
+    refreshTimerRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`${API_URL}/auth/refresh`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${currentToken}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          localStorage.setItem('token', data.token);
+          setToken(data.token);
+          scheduleRefresh(data.token);
+        } else {
+          logout();
+        }
+      } catch (e) {
+        console.error('[AUTH] Token refresh failed:', e.message);
       }
-    }, refreshTime);
+    }, refreshDelay);
   }, []);
 
   useEffect(() => {
-    // Check if user is logged in (from localStorage)
-    const storedToken = localStorage.getItem('authToken');
-    const storedSessionId = localStorage.getItem('sessionId') || storedToken; // fallback to token if legacy
+    const storedToken = localStorage.getItem('token');
     const storedUser = localStorage.getItem('user');
-    const storedExpiresIn = localStorage.getItem('tokenExpiresIn');
 
-    if (storedToken && storedSessionId && storedUser) {
+    if (storedToken && storedUser) {
       try {
+        const userData = JSON.parse(storedUser);
         setToken(storedToken);
-        setSessionId(storedSessionId);
-        setUser(JSON.parse(storedUser));
+        setUser(userData);
         setIsAuthenticated(true);
-        
-        // Set up refresh timer if we have expiration time
-        const expiresIn = storedExpiresIn ? parseInt(storedExpiresIn) : 3600;
-        setExpiresIn(expiresIn);
-        setupTokenRefreshTimer(expiresIn, storedToken);
+        scheduleRefresh(storedToken);
       } catch (e) {
-        console.error('Error restoring session:', e);
-        localStorage.removeItem('authToken');
+        localStorage.removeItem('token');
         localStorage.removeItem('user');
-        localStorage.removeItem('tokenExpiresIn');
       }
     }
     setIsLoading(false);
 
-    // Cleanup on unmount
-    return () => {
-      if (refreshTimeoutRef.current) {
-        clearTimeout(refreshTimeoutRef.current);
-      }
-    };
-  }, [setupTokenRefreshTimer]);
+    return clearRefreshTimer;
+  }, [scheduleRefresh]);
 
-  const login = (userData, authToken, expiresIn = 3600) => {
-    console.log('🔐 ═══════════════════════════════════════════════════');
-    console.log('🔐 [LOGIN] User logged in:', userData.email);
-    console.log('🔐 [LOGIN] Session ID (Auth Token):', authToken);
-    console.log('🔐 [LOGIN] Token expiration time:', expiresIn, 'seconds');
-    console.log('🔐 ═══════════════════════════════════════════════════');
-    localStorage.setItem('authToken', authToken);
-    localStorage.setItem('sessionId', authToken); // keep original token as session id
-    localStorage.setItem('user', JSON.stringify(userData));
-    localStorage.setItem('tokenExpiresIn', expiresIn.toString());
-    localStorage.setItem('authTokenExpiry', Date.now() + (expiresIn * 1000));
-    console.log('[AUTH] Token stored with expiry at:', new Date(Date.now() + (expiresIn * 1000)).toISOString());
-    
-    setToken(authToken);
-    setSessionId(authToken);
-    setUser(userData);
-    setExpiresIn(expiresIn);
+  const login = async (email, password) => {
+    const res = await fetch(`${API_URL}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Login failed');
+
+    localStorage.setItem('token', data.token);
+    localStorage.setItem('user', JSON.stringify(data.user));
+    setToken(data.token);
+    setUser(data.user);
     setIsAuthenticated(true);
+    scheduleRefresh(data.token);
 
-    // Set up token refresh timer
-    setupTokenRefreshTimer(expiresIn, authToken);
+    return data;
+  };
+
+  const register = async (name, email, password, confirmPassword) => {
+    const res = await fetch(`${API_URL}/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, password, confirmPassword })
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Registration failed');
+
+    localStorage.setItem('token', data.token);
+    localStorage.setItem('user', JSON.stringify(data.user));
+    setToken(data.token);
+    setUser(data.user);
+    setIsAuthenticated(true);
+    scheduleRefresh(data.token);
+
+    return data;
   };
 
   const logout = () => {
-    console.log('[AUTH] Logging out user');
-    // Clear refresh timer
-    if (refreshTimeoutRef.current) {
-      clearTimeout(refreshTimeoutRef.current);
-    }
-
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('sessionId'); // Clear sessionId on logout
-      localStorage.removeItem('user');
-      localStorage.removeItem('tokenExpiresIn');
-      setToken(null);
-      setSessionId(null);
-      setUser(null);
-      setExpiresIn(null);
-      setIsAuthenticated(false);
+    clearRefreshTimer();
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setToken(null);
+    setUser(null);
+    setIsAuthenticated(false);
   };
 
-  const value = {
-    isAuthenticated,
-    user,
-    token,
-    sessionId,
-    isLoading,
-    expiresIn,
-    login,
-    logout
-  };
+  const isAdmin = user?.role === 'admin';
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={{ isAuthenticated, user, token, isLoading, isAdmin, login, register, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
 };
 
 export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useAuth must be used within AuthProvider');
+  return ctx;
 };
