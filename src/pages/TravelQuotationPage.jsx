@@ -316,8 +316,53 @@ const TravelQuotationPage = () => {
       if (quotationNo) {
         // SUCCESS: Found and validated quotation number
         console.log('✅ [SUCCESS] Quotation created:', quotationNo);
+
+        // Show "Almost there" message while the API configures
+        const almostThereMsg = {
+          type: 'info',
+          content: '✨ Almost there... Please wait while we prepare your quotation details.',
+          id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_almostthere`,
+          timestamp: new Date().toISOString()
+        };
+
+        const updatedChatsWithAlmostThere = {
+          ...updatedChatsWithConfirm,
+          [chatId]: {
+            ...updatedChatsWithConfirm[chatId],
+            messages: [...updatedChatsWithConfirm[chatId].messages, almostThereMsg]
+          }
+        };
+        setChats(updatedChatsWithAlmostThere);
+        localStorage.setItem('travel_chats', JSON.stringify(updatedChatsWithAlmostThere));
+
+        // Wait 10 seconds to allow API to finish configuration
+        await new Promise(resolve => setTimeout(resolve, 10000));
+
         assistantMessage = `Your Request Has Been Created\n\nYour Request No is ${quotationNo}\n\nOur team will review your travel request and send you a detailed quote shortly. Thank you for choosing our services.`;
         isSuccess = true;
+
+        // Build final message on top of the "Almost there" state (not the confirm state)
+        const assistantMsg = {
+          type: 'assistant',
+          content: assistantMessage,
+          isSuccess: isSuccess,
+          quotationNo: quotationNo,
+          id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_response`,
+          timestamp: new Date().toISOString()
+        };
+
+        const finalChats = {
+          ...updatedChatsWithAlmostThere,
+          [chatId]: {
+            ...updatedChatsWithAlmostThere[chatId],
+            messages: [...updatedChatsWithAlmostThere[chatId].messages, assistantMsg]
+          }
+        };
+        setChats(finalChats);
+        localStorage.setItem('travel_chats', JSON.stringify(finalChats));
+        setIsLoading(false);
+        return; // Skip the default message append below
+
       } else if (response && response.status === 'success' && response.message) {
         // Webhook succeeded but no valid quotation number - backend issue
         console.warn('⚠️ [WARNING] Status success but no valid quotation_no');

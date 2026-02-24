@@ -197,11 +197,12 @@ const ChatPage = () => {
     const [sending, setSending] = useState(false);
     const [loadingMsgs, setLoadingMsgs] = useState(false);
     const [sidebarOpen, setSidebarOpen] = useState(true);
+    const [almostThere, setAlmostThere] = useState(false);
 
     const endRef = useRef(null);
     const textareaRef = useRef(null);
 
-    useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, sending]);
+    useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, sending, almostThere]);
 
     const loadSessions = useCallback(async () => {
         try {
@@ -267,6 +268,15 @@ const ChatPage = () => {
             const d = await chatAPI.sendMessage(sessionId, msg);
 
             if (d.chatSessionId) {
+                // Check if a quotation was created — add 10-second delay
+                // so the API has time to finish configuration
+                if (d.isSuccess && d.quotationNo) {
+                    setAlmostThere(true);
+                    // Wait 10 seconds for API configuration to complete
+                    await new Promise(resolve => setTimeout(resolve, 10000));
+                    setAlmostThere(false);
+                }
+
                 // Reload messages from server for this session
                 const msgsD = await chatAPI.getMessages(d.chatSessionId);
                 setMessages(msgsD.messages || []);
@@ -413,7 +423,18 @@ const ChatPage = () => {
                                 </div>
                             )}
                             {messages.map(m => <ChatMsg key={m.id} msg={m} />)}
-                            {sending && <TypingDots />}
+                            {sending && !almostThere && <TypingDots />}
+                            {almostThere && (
+                                <div className="cp-msg cp-msg--ai">
+                                    <div className="cp-avatar cp-avatar--ai"><i className="fas fa-robot" /></div>
+                                    <div className="cp-bubble cp-bubble--ai cp-almost-there">
+                                        <div className="cp-almost-there-inner">
+                                            <i className="fas fa-circle-notch fa-spin" />
+                                            <span>✨ Almost there... Please wait while we prepare your quotation details.</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                             <div ref={endRef} />
                         </>
                     )}
@@ -424,7 +445,10 @@ const ChatPage = () => {
                     {sending && (
                         <div className="cp-processing">
                             <i className="fas fa-circle-notch fa-spin" />
-                            Processing your request — this may take 1–3 minutes…
+                            {almostThere
+                                ? '✨ Almost there... Please wait while we prepare your quotation details.'
+                                : 'Processing your request — this may take 1–3 minutes…'
+                            }
                         </div>
                     )}
                     <div className="cp-input-card">

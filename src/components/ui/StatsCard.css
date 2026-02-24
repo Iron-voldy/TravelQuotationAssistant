@@ -194,3 +194,98 @@
 .stats-card--cyan .stats-card-sparkle {
     border-color: var(--accent-cyan);
 }
+
+/* ══ StatsCard Responsive ══ */
+@media (max-width: 999px) {
+    .stats-card {
+        padding: 18px 20px;
+        gap: 14px;
+    }
+
+    .stats-card-icon {
+        width: 48px;
+        height: 48px;
+        font-size: 18px;
+    }
+
+    .stats-card-value {
+        font-size: 26px;
+    }
+
+    .stats-card-title {
+        font-size: 12px;
+    }
+}
+
+@media (max-width: 767px) {
+    .stats-card {
+        padding: 16px 16px;
+        gap: 12px;
+    }
+
+    .stats-card-icon {
+        width: 44px;
+        height: 44px;
+        font-size: 16px;
+        border-radius: 12px;
+    }
+
+    .stats-card-value {
+        font-size: 22px;
+    }
+
+    .stats-card-title {
+        font-size: 12px;
+    }
+
+    .stats-card-subtitle {
+        font-size: 10px;
+    }
+
+    .stats-card-glow {
+        width: 80px;
+        height: 80px;
+    }
+}
+
+@media (max-width: 479px) {
+    .stats-card {
+        padding: 14px;
+        gap: 10px;
+        border-radius: 10px;
+    }
+
+    .stats-card-icon {
+        width: 40px;
+        height: 40px;
+        font-size: 15px;
+        border-radius: 10px;
+    }
+
+    .stats-card-value {
+        font-size: 20px;
+    }
+
+    .stats-card-sparkle {
+        width: 35px;
+        height: 35px;
+    }
+}
+
+/* ══ StatsCard Light Theme ══ */
+[data-theme="light"] .stats-card {
+    background: rgba(255, 255, 255, 0.8);
+    border-color: rgba(0, 0, 0, 0.06);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+[data-theme="light"] .stats-card:hover {
+    border-color: rgba(0, 0, 0, 0.12);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .stats-card-glow {
+    opacity: 0.15;
+}
+[data-theme="light"] .stats-card:hover .stats-card-glow {
+    opacity: 0.25;
+}

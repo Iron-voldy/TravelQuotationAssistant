@@ -91,9 +91,7 @@ const UserLoginPage = () => {
                 </div>
                 <div className="ulogin-hero-overlay" />
                 <div className="ulogin-hero-content">
-                    <div className="ulogin-hero-badge">
-                        <i className="fas fa-plane" /> &nbsp;AI-Powered Travel
-                    </div>
+                    
                     <h1 className="ulogin-hero-title">Your Dream Journey<br />Starts Here</h1>
                     <p className="ulogin-hero-sub">Get AI-generated travel quotations in seconds. Personalized, fast, and hassle-free.</p>
                     <div className="ulogin-hero-stats">
@@ -104,12 +102,7 @@ const UserLoginPage = () => {
                         <div className="hero-stat"><span className="hero-stat-val">24/7</span><span className="hero-stat-label">AI Support</span></div>
                     </div>
                 </div>
-                <div className="ulogin-floating-card ulogin-fc1">
-                    <i className="fas fa-map-pin" style={{ color: '#f59e0b' }} /> Maldives Package <span>✓</span>
-                </div>
-                <div className="ulogin-floating-card ulogin-fc2">
-                    <i className="fas fa-star" style={{ color: '#f59e0b' }} /> 5-Star Experience
-                </div>
+                
             </div>
 
             {/* Right form panel */}

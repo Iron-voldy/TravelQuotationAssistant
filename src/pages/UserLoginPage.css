@@ -450,3 +450,270 @@
         width: 100%;
     }
 }
+
+/* Small tablets (600-768px) */
+@media (max-width: 768px) and (min-width: 601px) {
+    .ulogin-form-inner {
+        max-width: 400px;
+    }
+
+    .ulogin-form-panel {
+        padding: 32px;
+    }
+}
+
+/* Phones (481-600px) */
+@media (max-width: 600px) {
+    .ulogin-form-panel {
+        padding: 24px 20px;
+    }
+
+    .ulogin-form-inner {
+        max-width: 100%;
+    }
+
+    .ulogin-brand {
+        margin-bottom: 28px;
+    }
+
+    .ulogin-logo {
+        width: 48px;
+        height: 48px;
+        font-size: 20px;
+        border-radius: 12px;
+    }
+
+    .ulogin-title {
+        font-size: 20px;
+    }
+
+    .ulogin-sub {
+        font-size: 12px;
+    }
+
+    .ulogin-btn {
+        padding: 13px;
+        font-size: 14px;
+    }
+}
+
+/* Small phones (400-480px) */
+@media (max-width: 480px) {
+    .ulogin-form-panel {
+        padding: 20px 16px;
+    }
+
+    .ulogin-brand {
+        margin-bottom: 24px;
+        gap: 12px;
+    }
+
+    .ulogin-logo {
+        width: 44px;
+        height: 44px;
+        font-size: 18px;
+    }
+
+    .ulogin-title {
+        font-size: 18px;
+    }
+
+    .ulogin-sub {
+        font-size: 12px;
+    }
+
+    .ulogin-form {
+        gap: 16px;
+    }
+
+    .ulogin-btn {
+        padding: 12px;
+        font-size: 14px;
+    }
+
+    .ulogin-error {
+        padding: 10px 14px;
+        font-size: 12px;
+    }
+
+    .ulogin-links p {
+        font-size: 12px;
+    }
+}
+
+/* Very small phones (<400px) */
+@media (max-width: 399px) {
+    .ulogin-form-panel {
+        padding: 16px 12px;
+    }
+
+    .ulogin-brand {
+        margin-bottom: 20px;
+        flex-direction: column;
+        text-align: center;
+        gap: 10px;
+    }
+
+    .ulogin-logo {
+        width: 42px;
+        height: 42px;
+        font-size: 17px;
+    }
+
+    .ulogin-title {
+        font-size: 17px;
+    }
+
+    .ulogin-form {
+        gap: 14px;
+    }
+
+    .ulogin-btn {
+        padding: 11px;
+        font-size: 13px;
+    }
+
+    .ulogin-divider {
+        margin: 18px 0;
+    }
+}
+
+/* Large screens: limit hero panel size */
+@media (min-width: 1400px) {
+    .ulogin-hero-title {
+        font-size: 48px;
+    }
+
+    .ulogin-hero-sub {
+        font-size: 17px;
+        max-width: 420px;
+    }
+}
+
+/* Medium-large screens (1000-1200px) */
+@media (max-width: 1200px) and (min-width: 769px) {
+    .ulogin-hero {
+        width: 50%;
+    }
+
+    .ulogin-form-panel {
+        width: 50%;
+    }
+
+    .ulogin-hero-title {
+        font-size: 36px;
+    }
+
+    .ulogin-hero-content {
+        padding: 48px 36px;
+    }
+
+    .ulogin-hero-sub {
+        font-size: 15px;
+    }
+
+    .ulogin-hero-stats {
+        gap: 20px;
+        padding: 14px 20px;
+    }
+
+    .hero-stat-val {
+        font-size: 20px;
+    }
+
+    .ulogin-floating-card {
+        display: none;
+    }
+}
+
+/* ══ UserLogin Light Theme ══ */
+[data-theme="light"] .ulogin-wrap {
+    background: #f8fafc;
+}
+
+[data-theme="light"] .ulogin-hero {
+    background: #e2e8f0;
+}
+
+[data-theme="light"] .ulogin-hero-overlay {
+    background: linear-gradient(120deg,
+            rgba(248, 250, 252, 0.2) 0%,
+            rgba(248, 250, 252, 0.5) 60%,
+            rgba(248, 250, 252, 0.9) 100%);
+}
+
+[data-theme="light"] .ulogin-hero-title {
+    color: #0f172a;
+    text-shadow: none;
+}
+
+[data-theme="light"] .ulogin-hero-sub {
+    color: #475569;
+}
+
+[data-theme="light"] .ulogin-hero-stats {
+    background: rgba(255, 255, 255, 0.8);
+    border-color: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .hero-stat-val {
+    background: linear-gradient(135deg, #0f172a, var(--accent-blue));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+[data-theme="light"] .hero-stat-label {
+    color: #64748b;
+}
+
+[data-theme="light"] .hero-stat-divider {
+    background: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .ulogin-form-panel {
+    background: linear-gradient(160deg, #ffffff 40%, #f8fafc 100%);
+}
+
+[data-theme="light"] .ulogin-form-panel::before {
+    background: radial-gradient(circle, rgba(59, 130, 246, 0.04) 0%, transparent 70%);
+}
+[data-theme="light"] .ulogin-form-panel::after {
+    background: radial-gradient(circle, rgba(6, 182, 212, 0.03) 0%, transparent 70%);
+}
+
+[data-theme="light"] .ulogin-brand-name {
+    color: #0f172a;
+}
+
+[data-theme="light"] .ulogin-brand-tag {
+    color: #64748b;
+}
+
+[data-theme="light"] .ulogin-title {
+    color: #0f172a;
+}
+
+[data-theme="light"] .ulogin-subtitle {
+    color: #64748b;
+}
+
+[data-theme="light"] .ulogin-divider span {
+    background: #ffffff;
+    color: #94a3b8;
+}
+[data-theme="light"] .ulogin-divider::before,
+[data-theme="light"] .ulogin-divider::after {
+    background: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .ulogin-footer {
+    color: #64748b;
+}
+
+[data-theme="light"] .ulogin-dot {
+    background: rgba(0, 0, 0, 0.2);
+}
+[data-theme="light"] .ulogin-dot.active {
+    background: #3b82f6;
+}

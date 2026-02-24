@@ -4,11 +4,18 @@ const AuthContext = createContext(null);
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
+/* ── helpers ── */
+const applyTheme = (theme) => {
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem('theme', theme);
+};
+
 export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
   const refreshTimerRef = useRef(null);
 
   const clearRefreshTimer = () => {
@@ -51,10 +58,17 @@ export const AuthProvider = ({ children }) => {
         setUser(userData);
         setIsAuthenticated(true);
         scheduleRefresh(storedToken);
+        // Apply persisted theme from user data or localStorage fallback
+        const savedTheme = userData.theme_preference || localStorage.getItem('theme') || 'dark';
+        setTheme(savedTheme);
+        applyTheme(savedTheme);
       } catch (e) {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
       }
+    } else {
+      // Not logged in — apply localStorage theme or default
+      applyTheme(localStorage.getItem('theme') || 'dark');
     }
     setIsLoading(false);
 
@@ -78,6 +92,11 @@ export const AuthProvider = ({ children }) => {
     setIsAuthenticated(true);
     scheduleRefresh(data.token);
 
+    // Apply theme from server
+    const t = data.user.theme_preference || 'dark';
+    setTheme(t);
+    applyTheme(t);
+
     return data;
   };
 
@@ -98,6 +117,10 @@ export const AuthProvider = ({ children }) => {
     setIsAuthenticated(true);
     scheduleRefresh(data.token);
 
+    const t = data.user.theme_preference || 'dark';
+    setTheme(t);
+    applyTheme(t);
+
     return data;
   };
 
@@ -108,12 +131,37 @@ export const AuthProvider = ({ children }) => {
     setToken(null);
     setUser(null);
     setIsAuthenticated(false);
+    // Reset to dark on logout
+    setTheme('dark');
+    applyTheme('dark');
+  };
+
+  const toggleTheme = async () => {
+    const next = theme === 'dark' ? 'light' : 'dark';
+    setTheme(next);
+    applyTheme(next);
+    // Persist to DB if logged in
+    if (token) {
+      try {
+        await fetch(`${API_URL}/auth/me/theme`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ themePreference: next })
+        });
+        // Update cached user
+        const updatedUser = { ...user, theme_preference: next };
+        setUser(updatedUser);
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+      } catch (e) {
+        console.error('[AUTH] Theme save failed:', e.message);
+      }
+    }
   };
 
   const isAdmin = user?.role === 'admin';
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, user, token, isLoading, isAdmin, login, register, logout }}>
+    <AuthContext.Provider value={{ isAuthenticated, user, token, isLoading, isAdmin, theme, login, register, logout, toggleTheme }}>
       {children}
     </AuthContext.Provider>
   );

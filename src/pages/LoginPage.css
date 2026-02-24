@@ -47,6 +47,7 @@
 
 .login-card {
   width: 420px;
+  max-width: calc(100vw - 32px);
   background: rgba(17, 24, 39, 0.8);
   border: 1px solid var(--border-hover);
   border-radius: 20px;
@@ -178,4 +179,107 @@
 
 .login-footer a:hover {
   color: var(--accent-cyan);
+}
+
+/* ══ Login Page Responsive ══ */
+@media (max-width: 480px) {
+  .login-card {
+    padding: 28px 20px;
+    border-radius: 16px;
+  }
+
+  .login-logo {
+    width: 56px;
+    height: 56px;
+    font-size: 32px;
+    border-radius: 14px;
+  }
+
+  .login-title {
+    font-size: 20px;
+  }
+
+  .login-subtitle {
+    font-size: 12px;
+  }
+
+  .login-btn {
+    padding: 12px;
+    font-size: 14px;
+  }
+
+  .login-form {
+    gap: 14px;
+  }
+}
+
+@media (max-width: 399px) {
+  .login-bg {
+    padding: 16px 8px;
+  }
+
+  .login-card {
+    padding: 24px 16px;
+    border-radius: 14px;
+  }
+
+  .login-brand {
+    margin-bottom: 24px;
+  }
+
+  .login-logo {
+    width: 50px;
+    height: 50px;
+    font-size: 28px;
+  }
+
+  .login-title {
+    font-size: 18px;
+  }
+
+  .login-btn {
+    padding: 11px;
+    font-size: 13px;
+  }
+
+  .login-footer {
+    font-size: 12px;
+  }
+}
+
+/* ══ LoginPage Light Theme ══ */
+[data-theme="light"] .login-bg {
+    background: #f8fafc;
+}
+
+[data-theme="light"] .login-glow-1 {
+    background: radial-gradient(circle, rgba(59, 130, 246, 0.06) 0%, transparent 70%);
+}
+[data-theme="light"] .login-glow-2 {
+    background: radial-gradient(circle, rgba(6, 182, 212, 0.05) 0%, transparent 70%);
+}
+
+[data-theme="light"] .login-card {
+    background: rgba(255, 255, 255, 0.9);
+    border-color: rgba(0, 0, 0, 0.08);
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .login-title {
+    background: linear-gradient(135deg, #0f172a, #3b82f6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+[data-theme="light"] .login-subtitle {
+    color: #64748b;
+}
+
+[data-theme="light"] .pwd-toggle {
+    color: #94a3b8;
+}
+
+[data-theme="light"] .login-footer {
+    color: #64748b;
 }

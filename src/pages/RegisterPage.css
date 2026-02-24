@@ -40,8 +40,53 @@
   gap: 14px;
 }
 
-@media (max-width: 480px) {
+@media (max-width: 600px) {
   .reg-pwd-row {
     grid-template-columns: 1fr;
   }
+}
+
+@media (max-width: 480px) {
+  .reg-pwd-row {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .reg-features {
+    gap: 10px;
+  }
+
+  .reg-feature-item {
+    font-size: 13px;
+    gap: 10px;
+  }
+
+  .reg-feature-icon {
+    width: 32px;
+    height: 32px;
+    font-size: 12px;
+    border-radius: 8px;
+  }
+}
+
+@media (max-width: 399px) {
+  .reg-feature-item {
+    font-size: 12px;
+  }
+
+  .reg-feature-icon {
+    width: 28px;
+    height: 28px;
+    font-size: 11px;
+  }
+}
+
+/* ══ RegisterPage Light Theme ══ */
+[data-theme="light"] .reg-feature-item {
+  color: rgba(0, 0, 0, 0.65);
+}
+
+[data-theme="light"] .reg-feature-icon {
+  background: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.15);
 }

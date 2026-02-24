@@ -22,6 +22,8 @@ export const authAPI = {
   me: () => fetch(`${API_URL}/auth/me`, { headers: getHeaders() }).then(handleResponse),
   refresh: () => fetch(`${API_URL}/auth/refresh`, { method: 'POST', headers: getHeaders() }).then(handleResponse),
   logout: () => fetch(`${API_URL}/auth/logout`, { method: 'POST', headers: getHeaders() }).then(handleResponse),
+  updateTheme: (themePreference) =>
+    fetch(`${API_URL}/auth/me/theme`, { method: 'PUT', headers: getHeaders(), body: JSON.stringify({ themePreference }) }).then(handleResponse),
 };
 
 export const chatAPI = {
@@ -49,4 +51,35 @@ export const adminAPI = {
   getQuotations: (params = {}) => fetch(`${API_URL}/admin/quotations?${new URLSearchParams(params)}`, { headers: getHeaders() }).then(handleResponse),
 };
 
-export default { authAPI, chatAPI, quotationAPI, adminAPI };
+export const assistantAPI = {
+  sendMessage: async (chatInput, sessionId, chatId) => {
+    const data = await fetch(`${API_URL}/chat/send`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ chatSessionId: null, message: chatInput })
+    }).then(handleResponse);
+
+    // Map backend response format to what the frontend expects
+    // Backend returns: { success, message: {content, quotation_no, is_success, ...}, quotationNo, isSuccess, chatSessionId }
+    // Frontend expects: { quotation_no, status, message, error, ... }
+    if (data.isSuccess && data.quotationNo) {
+      return {
+        quotation_no: data.quotationNo,
+        status: 'success',
+        message: data.message?.content || `Quotation ${data.quotationNo} created successfully`
+      };
+    } else if (data.success === false || data.error) {
+      return {
+        error: data.error || data.message?.content || 'Request failed',
+        success: false
+      };
+    } else {
+      return {
+        message: data.message?.content || 'No quotation was generated.',
+        success: data.success
+      };
+    }
+  }
+};
+
+export default { authAPI, chatAPI, quotationAPI, adminAPI, assistantAPI };

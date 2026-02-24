@@ -5,8 +5,29 @@
     margin-bottom: 20px;
 }
 
+@media (max-width: 1199px) {
+    .admin-grid {
+        grid-template-columns: 1.5fr 1fr;
+        gap: 16px;
+    }
+}
+
 @media (max-width: 900px) {
     .admin-grid {
         grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 767px) {
+    .admin-grid {
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+}
+
+@media (max-width: 479px) {
+    .admin-grid {
+        gap: 10px;
+        margin-bottom: 12px;
     }
 }

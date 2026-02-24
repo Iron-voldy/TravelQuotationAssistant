@@ -48,9 +48,7 @@ const RegisterPage = () => {
             ))}
           </div>
         </div>
-        <div className="ulogin-floating-card ulogin-fc1">
-          <i className="fas fa-check-circle" style={{ color: '#10b981' }} /> Account Created!
-        </div>
+        
       </div>
 
       {/* Form side */}
