@@ -1,7 +1,7 @@
 // Vercel Serverless Function to proxy API requests and bypass CORS
 // This acts as a middleware between the frontend and backend
 
-const BACKEND_URL = 'https://stagev2.appletechlabs.com/api';
+const BACKEND_URL = 'https://ai.appleholidaysds.com/api';
 
 // Disable body parsing to get raw body
 export const config = {

@@ -1,7 +1,7 @@
 // Cloudflare Pages Function to proxy API requests and bypass CORS
 // This replaces Vercel's serverless function for Cloudflare hosting
 
-const BACKEND_URL = 'https://stagev2.appletechlabs.com/api';
+const BACKEND_URL = 'https://ai.appleholidaysds.com/api';
 
 export async function onRequest(context) {
     const { request } = context;
