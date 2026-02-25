@@ -30,6 +30,16 @@
     -webkit-backface-visibility: hidden;
 }
 
+/* Mobile overlay */
+.cp-sidebar-overlay {
+    display: none;
+}
+
+/* Mobile close button — hidden on desktop */
+.cp-sb-close-btn {
+    display: none;
+}
+
 .cp-sidebar--open {
     width: 260px;
 }
@@ -1249,6 +1259,49 @@
 
 /* Small tablets / large phones (600–767px) */
 @media (max-width: 767px) {
+    /* Mobile overlay backdrop */
+    .cp-sidebar-overlay {
+        display: block;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 99;
+        backdrop-filter: blur(2px);
+    }
+
+    /* Close button visible on mobile */
+    .cp-sb-close-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 30px;
+        height: 30px;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(255, 255, 255, 0.06);
+        color: #94a3b8;
+        font-size: 14px;
+        cursor: pointer;
+        flex-shrink: 0;
+        margin-left: auto;
+        transition: all 0.2s;
+    }
+    .cp-sb-close-btn:hover {
+        background: rgba(239, 68, 68, 0.12);
+        border-color: rgba(239, 68, 68, 0.3);
+        color: #ef4444;
+    }
+
+    [data-theme="light"] .cp-sb-close-btn {
+        background: rgba(0, 0, 0, 0.04);
+        border-color: rgba(0, 0, 0, 0.1);
+        color: #64748b;
+    }
+    [data-theme="light"] .cp-sb-close-btn:hover {
+        background: rgba(239, 68, 68, 0.08);
+        color: #ef4444;
+    }
+
     /* Sidebar becomes overlay on mobile */
     .cp-sidebar--open {
         position: fixed;

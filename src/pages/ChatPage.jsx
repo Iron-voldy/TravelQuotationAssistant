@@ -196,7 +196,7 @@ const ChatPage = () => {
     const [input, setInput] = useState('');
     const [sending, setSending] = useState(false);
     const [loadingMsgs, setLoadingMsgs] = useState(false);
-    const [sidebarOpen, setSidebarOpen] = useState(true);
+    const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth > 767);
     const [almostThere, setAlmostThere] = useState(false);
 
     const endRef = useRef(null);
@@ -213,8 +213,10 @@ const ChatPage = () => {
 
     useEffect(() => { loadSessions(); }, [loadSessions]);
 
+    // Close sidebar on mobile when a session is selected
     const selectSession = async (s) => {
         setActiveSession(s);
+        if (window.innerWidth <= 767) setSidebarOpen(false);
         setLoadingMsgs(true);
         setMessages([]);
         try {
@@ -307,12 +309,22 @@ const ChatPage = () => {
 
     return (
         <div className="cp-root">
+            {/* Mobile overlay when sidebar is open */}
+            {sidebarOpen && (
+                <div className="cp-sidebar-overlay" onClick={() => setSidebarOpen(false)} />
+            )}
+
             {/* ── Sidebar ─────────────────────────── */}
             <aside className={`cp-sidebar ${sidebarOpen ? 'cp-sidebar--open' : 'cp-sidebar--closed'}`}>
-                {/* Brand */}
+                {/* Brand + mobile close btn */}
                 <div className="cp-sb-brand">
                     <div className="cp-sb-logo"><i className="fas fa-plane-departure" /></div>
                     {sidebarOpen && <span className="cp-sb-brand-name">TravelAI</span>}
+                    {sidebarOpen && (
+                        <button className="cp-sb-close-btn" onClick={() => setSidebarOpen(false)} aria-label="Close sidebar">
+                            <i className="fas fa-xmark" />
+                        </button>
+                    )}
                 </div>
 
                 {/* New chat */}
