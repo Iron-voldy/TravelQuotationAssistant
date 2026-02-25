@@ -180,10 +180,10 @@ const ChatMsg = ({ msg }) => {
    Main ChatPage
 ───────────────────────────────────────────── */
 const SUGGESTIONS = [
-    { icon: 'fa-umbrella-beach', text: 'Sri Lanka beach tour for 2, 5 nights in Mirissa' },
-    { icon: 'fa-mountain', text: 'Vietnam 7-day adventure Hanoi to Ho Chi Minh' },
-    { icon: 'fa-city', text: 'Singapore family holiday for 4, 3 nights' },
-    { icon: 'fa-train', text: 'Sri Lanka hill country rail trip 6 days Kandy to Ella' },
+    { icon: 'fa-map-location-dot', text: '1n Kandy, 1n Ella, 1n Galle, 1n Colombo for 2 Pax from 13th March 2026' },
+    { icon: 'fa-umbrella-beach', text: 'Generate me a 5 nights itinerary in Sri Lanka' },
+    { icon: 'fa-mountain', text: 'Create the Sri Lanka for 5 days tour for 2 pax' },
+    { icon: 'fa-users', text: 'Create the Sri Lanka for 7 days tour for 6 pax' },
 ];
 
 const ChatPage = () => {
