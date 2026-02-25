@@ -187,7 +187,7 @@ const SUGGESTIONS = [
 ];
 
 const ChatPage = () => {
-    const { user, logout } = useAuth();
+    const { user, logout, theme, toggleTheme } = useAuth();
     const navigate = useNavigate();
 
     const [sessions, setSessions] = useState([]);
@@ -353,7 +353,7 @@ const ChatPage = () => {
                     ))}
                 </div>
 
-                {/* User info + logout */}
+                {/* User info + theme toggle + logout */}
                 <div className="cp-sb-footer">
                     <div className="cp-sb-user">
                         <div className="cp-sb-user-avatar">{user?.name?.[0]?.toUpperCase() || 'U'}</div>
@@ -364,6 +364,9 @@ const ChatPage = () => {
                             </div>
                         )}
                     </div>
+                    <button className="cp-sb-theme-toggle" onClick={toggleTheme} title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}>
+                        <i className={`fas ${theme === 'dark' ? 'fa-sun' : 'fa-moon'}`} />
+                    </button>
                     <button className="cp-sb-logout" onClick={handleLogout} title="Sign out">
                         <i className="fas fa-sign-out-alt" />
                     </button>
