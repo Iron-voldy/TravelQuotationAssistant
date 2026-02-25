@@ -87,7 +87,7 @@ const UserLoginPage = () => {
                     <h1 className="ulogin-hero-title">Your Dream Journey<br />Starts Here</h1>
                     <p className="ulogin-hero-sub">Get AI-generated travel quotations in seconds. Personalized, fast, and hassle-free.</p>
                     <div className="ulogin-hero-stats">
-                        <div className="hero-stat"><span className="hero-stat-val">500+</span><span className="hero-stat-label">Destinations</span></div>
+                        <div className="hero-stat"><span className="hero-stat-val">100%</span><span className="hero-stat-label">Automation</span></div>
                         <div className="hero-stat-divider" />
                         <div className="hero-stat"><span className="hero-stat-val">98%</span><span className="hero-stat-label">Satisfaction</span></div>
                         <div className="hero-stat-divider" />
