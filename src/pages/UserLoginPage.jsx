@@ -35,15 +35,13 @@ const UserLoginPage = () => {
     const [loading, setLoading] = useState(false);
     const [showPwd, setShowPwd] = useState(false);
     const [heroIdx, setHeroIdx] = useState(0);
-    const [heroPrev, setHeroPrev] = useState(null);
 
     useEffect(() => {
         const timer = setInterval(() => {
-            setHeroPrev(heroIdx);
             setHeroIdx(i => (i + 1) % HERO_IMAGES.length);
-        }, 5000);
+        }, 6000);
         return () => clearInterval(timer);
-    }, [heroIdx]);
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     const handleSubmit = async (e) => {
         e.preventDefault(); setError(''); setLoading(true);
@@ -64,27 +62,21 @@ const UserLoginPage = () => {
 
             {/* Left hero panel — auto-rotating slideshow */}
             <div className="ulogin-hero">
-                {/* Previous image fades out */}
-                {heroPrev !== null && heroPrev !== heroIdx && (
+                {/* All images stacked — active one fades in via CSS */}
+                {HERO_IMAGES.map((img, i) => (
                     <div
-                        key={`prev-${heroPrev}`}
-                        className="ulogin-hero-slide ulogin-hero-slide-out"
-                        style={{ backgroundImage: `url(${HERO_IMAGES[heroPrev]})` }}
+                        key={i}
+                        className={`ulogin-hero-slide${i === heroIdx ? ' active' : ''}`}
+                        style={{ backgroundImage: `url(${img})` }}
                     />
-                )}
-                {/* Current image fades in */}
-                <div
-                    key={`curr-${heroIdx}`}
-                    className="ulogin-hero-slide ulogin-hero-slide-in"
-                    style={{ backgroundImage: `url(${HERO_IMAGES[heroIdx]})` }}
-                />
+                ))}
                 {/* Dot indicators */}
                 <div className="ulogin-dots">
                     {HERO_IMAGES.map((_, i) => (
                         <button
                             key={i}
                             className={`ulogin-dot${i === heroIdx ? ' active' : ''}`}
-                            onClick={() => { setHeroPrev(heroIdx); setHeroIdx(i); }}
+                            onClick={() => setHeroIdx(i)}
                             aria-label={`Slide ${i + 1}`}
                         />
                     ))}

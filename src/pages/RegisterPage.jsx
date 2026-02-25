@@ -1,8 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import './UserLoginPage.css';
 import './RegisterPage.css';
+
+// Hero slideshow images (same set as login)
+const HERO_IMAGES = [
+    `${process.env.PUBLIC_URL}/wallaper_login.jpg`,
+    `${process.env.PUBLIC_URL}/login-hero.jpg`,
+    `${process.env.PUBLIC_URL}/travel-hero.png`,
+    `${process.env.PUBLIC_URL}/admin-bg.png`,
+];
 
 const RegisterPage = () => {
   const { register } = useAuth();
@@ -11,6 +19,14 @@ const RegisterPage = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPwd, setShowPwd] = useState(false);
+  const [heroIdx, setHeroIdx] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setHeroIdx(i => (i + 1) % HERO_IMAGES.length);
+    }, 6000);
+    return () => clearInterval(timer);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSubmit = async (e) => {
     e.preventDefault(); setError('');
@@ -26,8 +42,15 @@ const RegisterPage = () => {
 
   return (
     <div className="ulogin-wrap">
-      {/* Hero side */}
-      <div className="ulogin-hero reg-hero" style={{ backgroundImage: `url(${process.env.PUBLIC_URL}/travel-hero.png)`, backgroundSize: 'cover', backgroundPosition: 'top center' }}>
+      {/* Hero side with slideshow */}
+      <div className="ulogin-hero reg-hero">
+        {HERO_IMAGES.map((img, i) => (
+          <div
+            key={i}
+            className={`ulogin-hero-slide${i === heroIdx ? ' active' : ''}`}
+            style={{ backgroundImage: `url(${img})` }}
+          />
+        ))}
         <div className="ulogin-hero-overlay" style={{ background: 'linear-gradient(120deg, rgba(5,12,26,0.3) 0%, rgba(5,12,26,0.6) 60%, rgba(5,12,26,0.93) 100%)' }} />
         <div className="ulogin-hero-content">
           <div className="ulogin-hero-badge">
