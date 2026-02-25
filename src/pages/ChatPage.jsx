@@ -180,10 +180,10 @@ const ChatMsg = ({ msg }) => {
    Main ChatPage
 ───────────────────────────────────────────── */
 const SUGGESTIONS = [
-    { icon: 'fa-umbrella-beach', text: 'Plan a Maldives trip for 2, 5 nights' },
-    { icon: 'fa-eiffel-tower', text: 'Paris family vacation for 4 in July' },
-    { icon: 'fa-gem', text: 'Dubai luxury honeymoon package' },
-    { icon: 'fa-leaf', text: 'Bali beach holiday 7 days, budget-friendly' },
+    { icon: 'fa-umbrella-beach', text: 'Sri Lanka beach tour for 2, 5 nights in Mirissa' },
+    { icon: 'fa-mountain', text: 'Vietnam 7-day adventure Hanoi to Ho Chi Minh' },
+    { icon: 'fa-city', text: 'Singapore family holiday for 4, 3 nights' },
+    { icon: 'fa-train', text: 'Sri Lanka hill country rail trip 6 days Kandy to Ella' },
 ];
 
 const ChatPage = () => {
