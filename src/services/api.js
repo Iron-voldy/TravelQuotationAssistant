@@ -17,6 +17,8 @@ const handleResponse = async (res) => {
 export const authAPI = {
   login: (email, password) =>
     fetch(`${API_URL}/auth/login`, { method: 'POST', headers: getHeaders(), body: JSON.stringify({ email, password }) }).then(handleResponse),
+  agentLogin: (email, password) =>
+    fetch(`${API_URL}/auth/agent-login`, { method: 'POST', headers: getHeaders(), body: JSON.stringify({ email, password }) }).then(handleResponse),
   register: (name, email, password, confirmPassword) =>
     fetch(`${API_URL}/auth/register`, { method: 'POST', headers: getHeaders(), body: JSON.stringify({ name, email, password, confirmPassword }) }).then(handleResponse),
   me: () => fetch(`${API_URL}/auth/me`, { headers: getHeaders() }).then(handleResponse),

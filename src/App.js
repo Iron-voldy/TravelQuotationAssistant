@@ -9,6 +9,7 @@ import ChatPage from './pages/ChatPage';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminUsers from './pages/AdminUsers';
 import AdminQuotations from './pages/AdminQuotations';
+import AgentLoginPage from './pages/AgentLoginPage';
 import './App.css';
 
 const ProtectedRoute = ({ children }) => {
@@ -34,6 +35,7 @@ function App() {
           <Route path="/login" element={<UserLoginPage />} />
           <Route path="/appledevadmin1265" element={<AdminLoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/agent-login" element={<AgentLoginPage />} />
 
           {/* Protected user routes */}
           <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />

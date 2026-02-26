@@ -144,6 +144,19 @@ const UserLoginPage = () => {
                         </button>
                     </form>
 
+                    <div className="ulogin-divider">
+                        <span>OR</span>
+                    </div>
+
+                    <Link to="/agent-login" className="ulogin-agent-btn">
+                        <img src={`${process.env.PUBLIC_URL}/user.gif`} alt="Agent" className="ulogin-agent-gif" />
+                        <div className="ulogin-agent-btn-text">
+                            <span className="ulogin-agent-btn-title">Agent Login</span>
+                            <span className="ulogin-agent-btn-sub">Sign in as a travel agent</span>
+                        </div>
+                        <i className="fas fa-arrow-right ulogin-agent-arrow" />
+                    </Link>
+
                     <div className="ulogin-links" style={{ marginTop: 20 }}>
                         <p>Don't have an account? <Link to="/register">Create Account →</Link></p>
                     </div>

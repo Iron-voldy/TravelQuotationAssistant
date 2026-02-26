@@ -100,6 +100,34 @@ export const AuthProvider = ({ children }) => {
     return data;
   };
 
+  const agentLogin = async (email, password) => {
+    const res = await fetch(`${API_URL}/auth/agent-login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Agent login failed');
+
+    localStorage.setItem('token', data.token);
+    localStorage.setItem('user', JSON.stringify(data.user));
+    if (data.appleAccessToken) {
+      localStorage.setItem('appleAccessToken', data.appleAccessToken);
+    }
+    setToken(data.token);
+    setUser(data.user);
+    setIsAuthenticated(true);
+    scheduleRefresh(data.token);
+
+    // Apply theme from server
+    const t = data.user.theme_preference || 'dark';
+    setTheme(t);
+    applyTheme(t);
+
+    return data;
+  };
+
   const register = async (name, email, password, confirmPassword) => {
     const res = await fetch(`${API_URL}/auth/register`, {
       method: 'POST',
@@ -161,7 +189,7 @@ export const AuthProvider = ({ children }) => {
   const isAdmin = user?.role === 'admin';
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, user, token, isLoading, isAdmin, theme, login, register, logout, toggleTheme }}>
+    <AuthContext.Provider value={{ isAuthenticated, user, token, isLoading, isAdmin, theme, login, agentLogin, register, logout, toggleTheme }}>
       {children}
     </AuthContext.Provider>
   );
