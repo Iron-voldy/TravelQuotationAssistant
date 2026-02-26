@@ -151,8 +151,8 @@ const UserLoginPage = () => {
                     <Link to="/agent-login" className="ulogin-agent-btn">
                         <img src={`${process.env.PUBLIC_URL}/user.gif`} alt="Agent" className="ulogin-agent-gif" />
                         <div className="ulogin-agent-btn-text">
-                            <span className="ulogin-agent-btn-title">Agent Login</span>
-                            <span className="ulogin-agent-btn-sub">Sign in as a travel agent</span>
+                            <span className="ulogin-agent-btn-title">Admin Login</span>
+                            <span className="ulogin-agent-btn-sub">Sign in as an admin</span>
                         </div>
                         <i className="fas fa-arrow-right ulogin-agent-arrow" />
                     </Link>
