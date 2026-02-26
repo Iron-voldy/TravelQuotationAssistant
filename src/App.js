@@ -10,6 +10,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import AdminUsers from './pages/AdminUsers';
 import AdminQuotations from './pages/AdminQuotations';
 import AgentLoginPage from './pages/AgentLoginPage';
+import AgentDashboardPage from './pages/AgentDashboardPage';
 import './App.css';
 
 const ProtectedRoute = ({ children }) => {
@@ -40,6 +41,10 @@ function App() {
           {/* Protected user routes */}
           <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
           <Route path="/chat" element={<ProtectedRoute><ChatPage /></ProtectedRoute>} />
+
+          {/* Agent routes (same protection, separate dashboard) */}
+          <Route path="/agent-dashboard" element={<ProtectedRoute><AgentDashboardPage /></ProtectedRoute>} />
+          <Route path="/agent-chat" element={<ProtectedRoute><ChatPage /></ProtectedRoute>} />
 
           {/* Admin routes */}
           <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />

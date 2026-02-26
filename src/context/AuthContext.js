@@ -156,6 +156,8 @@ export const AuthProvider = ({ children }) => {
     clearRefreshTimer();
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    localStorage.removeItem('appleAccessToken');
+    console.log('[AUTH] Logged out. Cleared token, user, appleAccessToken');
     setToken(null);
     setUser(null);
     setIsAuthenticated(false);
@@ -187,9 +189,12 @@ export const AuthProvider = ({ children }) => {
   };
 
   const isAdmin = user?.role === 'admin';
+  const isAgent = !!user?.isAgent;
+
+  console.log('[AUTH CONTEXT] User:', user?.email, '| isAgent:', isAgent, '| isAdmin:', isAdmin);
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, user, token, isLoading, isAdmin, theme, login, agentLogin, register, logout, toggleTheme }}>
+    <AuthContext.Provider value={{ isAuthenticated, user, token, isLoading, isAdmin, isAgent, theme, login, agentLogin, register, logout, toggleTheme }}>
       {children}
     </AuthContext.Provider>
   );

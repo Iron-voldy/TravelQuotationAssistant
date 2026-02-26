@@ -12,10 +12,12 @@ const CloudLayer = () => (
 );
 
 const Sidebar = () => {
-    const { user, isAdmin, logout, theme, toggleTheme } = useAuth();
+    const { user, isAdmin, isAgent, logout, theme, toggleTheme } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
     const [mobileOpen, setMobileOpen] = useState(false);
+
+    console.log('[SIDEBAR] Rendering. isAgent:', isAgent, '| isAdmin:', isAdmin, '| user:', user?.email);
 
     // Close sidebar on route change (mobile)
     useEffect(() => {
@@ -31,7 +33,11 @@ const Sidebar = () => {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    const handleLogout = () => { logout(); navigate('/login'); };
+    const handleLogout = () => { 
+        const wasAgent = isAgent;
+        logout(); 
+        navigate(wasAgent ? '/agent-login' : '/login'); 
+    };
     const initials = user?.name?.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || '?';
 
     return (
@@ -70,8 +76,8 @@ const Sidebar = () => {
                     <div className="sidebar-user-info">
                         <div className="sidebar-user-name">{user?.name}</div>
                         <div className="sidebar-user-role">
-                            <i className={`fas ${isAdmin ? 'fa-crown' : 'fa-user'}`} />
-                            {user?.role}
+                            <i className={`fas ${isAdmin ? 'fa-crown' : isAgent ? 'fa-user-tie' : 'fa-user'}`} />
+                            {isAgent ? 'Agent' : user?.role}
                         </div>
                     </div>
                     <div className="sidebar-online-dot" title="Online" />
@@ -81,16 +87,35 @@ const Sidebar = () => {
                 <nav className="sidebar-nav">
                     <div className="nav-section-label">Navigation</div>
 
-                    <NavLink to="/dashboard" className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}>
-                        <span className="nav-icon"><i className="fas fa-house" /></span>
-                        Dashboard
-                    </NavLink>
+                    {isAgent ? (
+                        <>
+                            {/* Agent-specific navigation */}
+                            <NavLink to="/agent-dashboard" className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}>
+                                <span className="nav-icon"><i className="fas fa-house" /></span>
+                                Agent Dashboard
+                            </NavLink>
 
-                    <NavLink to="/chat" className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}>
-                        <span className="nav-icon"><i className="fas fa-robot" /></span>
-                        AI Chat
-                        <span className="nav-badge">AI</span>
-                    </NavLink>
+                            <NavLink to="/agent-chat" className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}>
+                                <span className="nav-icon"><i className="fas fa-robot" /></span>
+                                AI Chat
+                                <span className="nav-badge" style={{ background: 'linear-gradient(135deg, #f59e0b, #d97706)' }}>Agent</span>
+                            </NavLink>
+                        </>
+                    ) : (
+                        <>
+                            {/* Regular user navigation */}
+                            <NavLink to="/dashboard" className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}>
+                                <span className="nav-icon"><i className="fas fa-house" /></span>
+                                Dashboard
+                            </NavLink>
+
+                            <NavLink to="/chat" className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}>
+                                <span className="nav-icon"><i className="fas fa-robot" /></span>
+                                AI Chat
+                                <span className="nav-badge">AI</span>
+                            </NavLink>
+                        </>
+                    )}
 
                     {isAdmin && (
                         <>

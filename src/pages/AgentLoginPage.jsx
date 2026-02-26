@@ -16,13 +16,18 @@ const AgentLoginPage = () => {
         setError('');
         setLoading(true);
         try {
+            console.log('[AGENT LOGIN PAGE] Attempting agent login for:', form.email);
             const data = await agentLogin(form.email, form.password);
-            if (data.user?.role === 'admin') {
-                navigate('/admin', { replace: true });
-            } else {
-                navigate('/dashboard', { replace: true });
+            console.log('[AGENT LOGIN PAGE] Login successful. User:', data.user);
+            console.log('[AGENT LOGIN PAGE] isAgent:', data.user?.isAgent);
+            console.log('[AGENT LOGIN PAGE] Token received:', !!data.token);
+            if (data.appleAccessToken) {
+                console.log('[AGENT LOGIN PAGE] Apple token received and stored');
             }
+            // Always navigate to agent dashboard
+            navigate('/agent-dashboard', { replace: true });
         } catch (err) {
+            console.error('[AGENT LOGIN PAGE] Login failed:', err.message);
             setError(err.message);
         } finally {
             setLoading(false);

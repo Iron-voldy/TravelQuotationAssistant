@@ -1,0 +1,82 @@
+/* ═══════════════════════════════════════════════
+   Agent Dashboard — Extra Styles (extends DashboardPage.css)
+   ═══════════════════════════════════════════════ */
+
+.agent-dashboard-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.agent-title-icon {
+    color: #f59e0b;
+    margin-right: 8px;
+}
+
+.agent-badge-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(217, 119, 6, 0.15));
+    color: #f59e0b;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 20px;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.agent-info-banner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.08), rgba(217, 119, 6, 0.05));
+    border: 1px solid rgba(245, 158, 11, 0.2);
+    border-radius: 12px;
+    padding: 14px 20px;
+    margin-bottom: 20px;
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+.agent-info-banner i {
+    color: #f59e0b;
+    font-size: 18px;
+    flex-shrink: 0;
+}
+
+.agent-info-banner strong {
+    color: #f59e0b;
+}
+
+/* Light theme */
+[data-theme="light"] .agent-badge-indicator {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(217, 119, 6, 0.08));
+    border-color: rgba(245, 158, 11, 0.25);
+}
+
+[data-theme="light"] .agent-info-banner {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.06), rgba(217, 119, 6, 0.03));
+    border-color: rgba(245, 158, 11, 0.15);
+}
+
+/* Mobile */
+@media (max-width: 767px) {
+    .agent-dashboard-header {
+        gap: 10px;
+    }
+
+    .agent-badge-indicator {
+        font-size: 10px;
+        padding: 3px 8px;
+    }
+
+    .agent-info-banner {
+        padding: 10px 14px;
+        font-size: 13px;
+        gap: 8px;
+    }
+}
