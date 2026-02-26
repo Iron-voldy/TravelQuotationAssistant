@@ -85,8 +85,8 @@ const AgentLoginPage = () => {
                             <div className="agent-icon-circle">
                                 <i className="fas fa-user-tie" />
                             </div>
-                            <h2 className="agent-form-title">Agent Login</h2>
-                            <p className="agent-form-sub">Sign in with your agent credentials</p>
+                            <h2 className="agent-form-title">Admin Login</h2>
+                            <p className="agent-form-sub">Sign in with your admin credentials</p>
                         </div>
 
                         {error && (
