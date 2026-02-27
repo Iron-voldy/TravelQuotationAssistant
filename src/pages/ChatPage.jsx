@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { chatAPI, quotationAPI } from '../services/api';
+import { getOptimizedPrompts } from '../services/promptOptimizer';
 import './ChatPage.css';
 
 /* ─────────────────────────────────────────────
@@ -148,7 +149,7 @@ const QuotationCard = ({ quotationNo, chatMessageId, onAction }) => {
 /* ─────────────────────────────────────────────
    Format Guide Error Card
 ───────────────────────────────────────────── */
-const FormatGuideCard = () => (
+const FormatGuideCard = ({ recommendations, onSelect }) => (
     <div className="cp-format-guide">
         <div className="cp-format-guide-title">
             <i className="fas fa-triangle-exclamation" />
@@ -157,17 +158,48 @@ const FormatGuideCard = () => (
         <div className="cp-format-guide-body">
             <p>Please <strong>simplify your request</strong> and include:</p>
             <ul>
-                <li><i className="fas fa-location-dot" /><span><strong>Country name</strong> — e.g., Singapore, Malaysia, Sri Lanka, Thailand</span></li>
+                <li><i className="fas fa-location-dot" /><span><strong>Country name</strong> — e.g., Singapore, Malaysia, Sri Lanka, Vietnam</span></li>
                 <li><i className="fas fa-moon" /><span><strong>Duration</strong> — e.g., 3 nights / 5 days</span></li>
                 <li><i className="fas fa-users" /><span><strong>Travellers</strong> — e.g., 3 pax / 2 adults and 1 child</span></li>
                 <li><i className="fas fa-calendar" /><span><strong>Travel date</strong> — optional but recommended</span></li>
             </ul>
-            <p className="cp-format-guide-eg-title">Try one of these formats:</p>
-            <div className="cp-format-guide-examples">
-                <div className="cp-format-eg">✈ Create Singapore for 3 nights for 3 pax</div>
-                <div className="cp-format-eg">✈ Create Sri Lanka for 5 days for 2 adults and 2 children, travel starts March 12th</div>
-                <div className="cp-format-eg">✈ Create Malaysia for 2 adults and 1 child traveling on 5th April 2026 with 4-star hotel</div>
-            </div>
+
+            {/* AI-generated recommendations based on user's original prompt */}
+            {(() => {
+                // undefined = map key not set yet (treat as loading), null = loading, [] = fallback, [...] = AI recs
+                if (recommendations === undefined || recommendations === null) return (
+                    <p className="cp-format-guide-eg-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <i className="fas fa-circle-notch fa-spin" style={{ fontSize: 12, color: '#06b6d4' }} />
+                        Analyzing your request…
+                    </p>
+                );
+                const examples = Array.isArray(recommendations) && recommendations.length > 0
+                    ? recommendations
+                    : ['Create Singapore for 3 nights for 3 pax',
+                       'Create Sri Lanka for 5 days for 2 adults and 2 children, travel starts March 12th',
+                       'Create Malaysia for 2 adults and 1 child traveling on 5th April 2026 with 4-star hotel'];
+                const label = Array.isArray(recommendations) && recommendations.length > 0
+                    ? '✨ Try these optimized prompts (click to use):'
+                    : 'Try one of these formats:';
+                return (
+                    <>
+                        <p className="cp-format-guide-eg-title">{label}</p>
+                        <div className="cp-format-guide-examples">
+                            {examples.map((ex, i) => (
+                                <button
+                                    key={i}
+                                    className="cp-format-eg cp-format-eg--btn"
+                                    onClick={() => onSelect && onSelect(ex)}
+                                    title="Click to use this prompt"
+                                >
+                                    <i className="fas fa-paper-plane" style={{ marginRight: 6, fontSize: 11 }} />
+                                    {ex}
+                                </button>
+                            ))}
+                        </div>
+                    </>
+                );
+            })()}
         </div>
     </div>
 );
@@ -175,7 +207,7 @@ const FormatGuideCard = () => (
 /* ─────────────────────────────────────────────
    Single message bubble
 ───────────────────────────────────────────── */
-const ChatMsg = ({ msg }) => {
+const ChatMsg = ({ msg, recommendations, onSelectPrompt }) => {
     const isUser = msg.role === 'user';
     const fmt = d => new Date(d).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 
@@ -185,7 +217,10 @@ const ChatMsg = ({ msg }) => {
             <div className="cp-msg cp-msg--ai">
                 <div className="cp-avatar cp-avatar--ai"><i className="fas fa-robot" /></div>
                 <div className="cp-msg-inner">
-                    <FormatGuideCard />
+                    <FormatGuideCard
+                        recommendations={recommendations}
+                        onSelect={onSelectPrompt}
+                    />
                     <span className="cp-time">{msg.created_at ? fmt(msg.created_at) : ''}</span>
                 </div>
             </div>
@@ -238,6 +273,8 @@ const ChatPage = () => {
     const [loadingMsgs, setLoadingMsgs] = useState(false);
     const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth > 767);
     const [almostThere, setAlmostThere] = useState(false);
+    // Map of guideId -> recommendations array (null=loading, []=fallback, [...]=AI recs)
+    const [aiRecsMap, setAiRecsMap] = useState({});
 
     const endRef = useRef(null);
     const textareaRef = useRef(null);
@@ -325,13 +362,20 @@ const ChatPage = () => {
 
                 // If no quotation number was returned, show the format guide card
                 if (!d.quotationNo || !d.isSuccess) {
+                    const guideId = `guide_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+                    // Set loading state FIRST in same logic tick, then add message
+                    setAiRecsMap(prev => ({ ...prev, [guideId]: null }));
                     setMessages(prev => [...prev, {
-                        id: Date.now() + 2,
+                        id: guideId,
                         role: 'assistant',
                         is_format_error: true,
                         content: '',
                         created_at: new Date()
                     }]);
+                    // Fetch AI recs — on failure keep null so spinner stays, then fallback after 8s
+                    getOptimizedPrompts(msg).then(recs => {
+                        setAiRecsMap(prev => ({ ...prev, [guideId]: recs !== null ? recs : [] }));
+                    });
                 }
 
                 // Update session ID if it changed (shouldn't anymore, but safety)
@@ -342,20 +386,26 @@ const ChatPage = () => {
                 loadSessions();
             }
         } catch (e) {
+            const guideId = `guide_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+            setAiRecsMap(prev => ({ ...prev, [guideId]: null }));
             setMessages(p => [...p,
                 {
-                    id: Date.now() + 1, role: 'assistant',
+                    id: `err_${Date.now()}`,
+                    role: 'assistant',
                     content: `Sorry, there was an error processing your request. Please try again.`,
                     created_at: new Date()
                 },
                 {
-                    id: Date.now() + 2,
+                    id: guideId,
                     role: 'assistant',
                     is_format_error: true,
                     content: '',
                     created_at: new Date()
                 }
             ]);
+            getOptimizedPrompts(msg).then(recs => {
+                setAiRecsMap(prev => ({ ...prev, [guideId]: recs !== null ? recs : [] }));
+            });
         } finally { setSending(false); }
     };
 
@@ -498,7 +548,24 @@ const ChatPage = () => {
                                     <p>Send a message to start your quotation</p>
                                 </div>
                             )}
-                            {messages.map(m => <ChatMsg key={m.id} msg={m} />)}
+                            {messages.map(m => (
+                                <ChatMsg
+                                    key={m.id}
+                                    msg={m}
+                                    recommendations={aiRecsMap[m.id]}
+                                    onSelectPrompt={(text) => {
+                                        setInput(text);
+                                        setTimeout(() => {
+                                            if (textareaRef.current) {
+                                                textareaRef.current.focus();
+                                                textareaRef.current.style.height = 'auto';
+                                                textareaRef.current.style.height =
+                                                    Math.min(textareaRef.current.scrollHeight, 140) + 'px';
+                                            }
+                                        }, 50);
+                                    }}
+                                />
+                            ))}
                             {sending && !almostThere && <TypingDots />}
                             {almostThere && (
                                 <div className="cp-msg cp-msg--ai">

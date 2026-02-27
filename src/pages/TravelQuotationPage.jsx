@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { assistantAPI } from '../services/api';
+import { getOptimizedPrompts } from '../services/promptOptimizer';
 import './TravelQuotationPage.css';
 
 const TravelQuotationPage = () => {
@@ -16,8 +17,11 @@ const TravelQuotationPage = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showCopyModal, setShowCopyModal] = useState(false);
   const [copiedNumber, setCopiedNumber] = useState('');
+  // Map of errorMsgId -> recommendations array (null=loading, []=fallback, [...]=AI recs)
+  const [aiRecsMap, setAiRecsMap] = useState({});
 
   const chatMessagesRef = useRef(null);
+  const chatInputRef = useRef(null);
 
   // Load chats from localStorage
   useEffect(() => {
@@ -444,6 +448,14 @@ const TravelQuotationPage = () => {
       };
       setChats(updatedChatsWithAssistantMsg);
       localStorage.setItem('travel_chats', JSON.stringify(updatedChatsWithAssistantMsg));
+
+      // If this is an error, get AI-optimized prompt recommendations
+      if (!isSuccess) {
+        setAiRecsMap(prev => ({ ...prev, [assistantMsg.id]: null }));
+        getOptimizedPrompts(trimmedMessage).then(recs => {
+          setAiRecsMap(prev => ({ ...prev, [assistantMsg.id]: recs !== null ? recs : [] }));
+        });
+      }
     } catch (error) {
       console.error('Error:', error);
 
@@ -474,6 +486,12 @@ const TravelQuotationPage = () => {
       };
       setChats(updatedChatsWithError);
       localStorage.setItem('travel_chats', JSON.stringify(updatedChatsWithError));
+
+      // Get AI-optimized prompt recommendations
+      setAiRecsMap(prev => ({ ...prev, [errorMsg.id]: null }));
+      getOptimizedPrompts(trimmedMessage).then(recs => {
+        setAiRecsMap(prev => ({ ...prev, [errorMsg.id]: recs !== null ? recs : [] }));
+      });
     } finally {
       setIsLoading(false);
     }
@@ -680,17 +698,59 @@ const TravelQuotationPage = () => {
                         <div className="error-guide-body">
                           <p>Please <strong>simplify your request</strong> and include:</p>
                           <ul>
-                            <li><i className="fas fa-location-dot" /><span><strong>Country name</strong> — e.g., Singapore, Malaysia, Sri Lanka, Thailand</span></li>
+                            <li><i className="fas fa-location-dot" /><span><strong>Country name</strong> — e.g., Singapore, Malaysia, Sri Lanka, Vietnam</span></li>
                             <li><i className="fas fa-moon" /><span><strong>Duration</strong> — e.g., 3 nights / 5 days</span></li>
                             <li><i className="fas fa-users" /><span><strong>Travellers</strong> — e.g., 3 pax / 2 adults and 1 child</span></li>
                             <li><i className="fas fa-calendar" /><span><strong>Travel date</strong> — optional but recommended</span></li>
                           </ul>
-                          <p className="error-guide-eg-title">Try one of these formats:</p>
-                          <div className="error-guide-examples">
-                            <div className="error-guide-eg">✈ Create Singapore for 3 nights for 3 pax</div>
-                            <div className="error-guide-eg">✈ Create Sri Lanka for 5 days for 2 adults and 2 children, travel starts March 12th</div>
-                            <div className="error-guide-eg">✈ Create Malaysia for 2 adults and 1 child traveling on 5th April 2026 with 4-star hotel</div>
-                          </div>
+
+                          {/* AI recommendations live in aiRecsMap[msg.id], not in msg state */}
+                          {(() => {
+                            const recs = aiRecsMap[msg.id];
+                            // undefined or null = loading spinner
+                            if (recs === undefined || recs === null) return (
+                              <p className="error-guide-eg-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <i className="fas fa-circle-notch fa-spin" style={{ fontSize: 12, color: '#06b6d4' }} />
+                                Analyzing your request…
+                              </p>
+                            );
+                            const examples = Array.isArray(recs) && recs.length > 0
+                              ? recs
+                              : ['Create Singapore for 3 nights for 3 pax',
+                                 'Create Sri Lanka for 5 days for 2 adults and 2 children, travel starts March 12th',
+                                 'Create Malaysia for 2 adults and 1 child traveling on 5th April 2026 with 4-star hotel'];
+                            const label = Array.isArray(recs) && recs.length > 0
+                              ? '✨ Try these optimized prompts (click to use):'
+                              : 'Try one of these formats:';
+                            return (
+                              <>
+                                <p className="error-guide-eg-title">{label}</p>
+                                <div className="error-guide-examples">
+                                  {examples.map((ex, i) => (
+                                    <button
+                                      key={i}
+                                      className="error-guide-eg error-guide-eg--btn"
+                                      onClick={() => {
+                                        setMessage(ex);
+                                        setTimeout(() => {
+                                          if (chatInputRef.current) {
+                                            chatInputRef.current.focus();
+                                            chatInputRef.current.style.height = 'auto';
+                                            chatInputRef.current.style.height =
+                                              Math.min(chatInputRef.current.scrollHeight, 150) + 'px';
+                                          }
+                                        }, 50);
+                                      }}
+                                      title="Click to use this prompt"
+                                    >
+                                      <i className="fas fa-paper-plane" style={{ marginRight: 6, fontSize: 11 }} />
+                                      {ex}
+                                    </button>
+                                  ))}
+                                </div>
+                              </>
+                            );
+                          })()}
                         </div>
                       </div>
                     ) : (
@@ -713,6 +773,7 @@ const TravelQuotationPage = () => {
           <div className="chat-input-container">
             <form onSubmit={handleSendMessage} className="chat-input-wrapper">
               <textarea
+                ref={chatInputRef}
                 className="chat-input"
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
