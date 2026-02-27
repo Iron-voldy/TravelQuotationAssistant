@@ -429,6 +429,7 @@ const TravelQuotationPage = () => {
         type: 'assistant',
         content: assistantMessage,
         isSuccess: isSuccess,
+        isErrorGuide: !isSuccess,
         quotationNo: quotationNo,
         id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_response`,
         timestamp: new Date().toISOString()
@@ -459,6 +460,7 @@ const TravelQuotationPage = () => {
       const errorMsg = {
         type: 'assistant',
         content: errorMessage,
+        isErrorGuide: true,
         id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_error`,
         timestamp: new Date().toISOString()
       };
@@ -669,6 +671,28 @@ const TravelQuotationPage = () => {
                           </div>
                         </div>
                       </div>
+                    ) : msg.isErrorGuide ? (
+                      <div className="error-guide-content">
+                        <div className="error-guide-title">
+                          <i className="fas fa-triangle-exclamation" />
+                          Couldn't Create Your Quotation
+                        </div>
+                        <div className="error-guide-body">
+                          <p>Please <strong>simplify your request</strong> and include:</p>
+                          <ul>
+                            <li><i className="fas fa-location-dot" /><span><strong>Country name</strong> — e.g., Singapore, Malaysia, Sri Lanka, Thailand</span></li>
+                            <li><i className="fas fa-moon" /><span><strong>Duration</strong> — e.g., 3 nights / 5 days</span></li>
+                            <li><i className="fas fa-users" /><span><strong>Travellers</strong> — e.g., 3 pax / 2 adults and 1 child</span></li>
+                            <li><i className="fas fa-calendar" /><span><strong>Travel date</strong> — optional but recommended</span></li>
+                          </ul>
+                          <p className="error-guide-eg-title">Try one of these formats:</p>
+                          <div className="error-guide-examples">
+                            <div className="error-guide-eg">✈ Create Singapore for 3 nights for 3 pax</div>
+                            <div className="error-guide-eg">✈ Create Sri Lanka for 5 days for 2 adults and 2 children, travel starts March 12th</div>
+                            <div className="error-guide-eg">✈ Create Malaysia for 2 adults and 1 child traveling on 5th April 2026 with 4-star hotel</div>
+                          </div>
+                        </div>
+                      </div>
                     ) : (
                       <div className="message-content">{msg.content}</div>
                     )}
@@ -693,7 +717,7 @@ const TravelQuotationPage = () => {
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Describe your dream trip (e.g., '10 days in Japan for 2 people')"
+                placeholder="e.g., Create Singapore for 3 nights for 3 pax from 5th April"
                 rows="1"
                 disabled={isLoading}
                 onInput={(e) => {

@@ -146,11 +146,51 @@ const QuotationCard = ({ quotationNo, chatMessageId, onAction }) => {
 };
 
 /* ─────────────────────────────────────────────
+   Format Guide Error Card
+───────────────────────────────────────────── */
+const FormatGuideCard = () => (
+    <div className="cp-format-guide">
+        <div className="cp-format-guide-title">
+            <i className="fas fa-triangle-exclamation" />
+            Couldn't Create Your Quotation
+        </div>
+        <div className="cp-format-guide-body">
+            <p>Please <strong>simplify your request</strong> and include:</p>
+            <ul>
+                <li><i className="fas fa-location-dot" /><span><strong>Country name</strong> — e.g., Singapore, Malaysia, Sri Lanka, Thailand</span></li>
+                <li><i className="fas fa-moon" /><span><strong>Duration</strong> — e.g., 3 nights / 5 days</span></li>
+                <li><i className="fas fa-users" /><span><strong>Travellers</strong> — e.g., 3 pax / 2 adults and 1 child</span></li>
+                <li><i className="fas fa-calendar" /><span><strong>Travel date</strong> — optional but recommended</span></li>
+            </ul>
+            <p className="cp-format-guide-eg-title">Try one of these formats:</p>
+            <div className="cp-format-guide-examples">
+                <div className="cp-format-eg">✈ Create Singapore for 3 nights for 3 pax</div>
+                <div className="cp-format-eg">✈ Create Sri Lanka for 5 days for 2 adults and 2 children, travel starts March 12th</div>
+                <div className="cp-format-eg">✈ Create Malaysia for 2 adults and 1 child traveling on 5th April 2026 with 4-star hotel</div>
+            </div>
+        </div>
+    </div>
+);
+
+/* ─────────────────────────────────────────────
    Single message bubble
 ───────────────────────────────────────────── */
 const ChatMsg = ({ msg }) => {
     const isUser = msg.role === 'user';
     const fmt = d => new Date(d).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
+    // Special rendering: format guide error card
+    if (msg.is_format_error) {
+        return (
+            <div className="cp-msg cp-msg--ai">
+                <div className="cp-avatar cp-avatar--ai"><i className="fas fa-robot" /></div>
+                <div className="cp-msg-inner">
+                    <FormatGuideCard />
+                    <span className="cp-time">{msg.created_at ? fmt(msg.created_at) : ''}</span>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className={`cp-msg cp-msg--${isUser ? 'user' : 'ai'}`}>
@@ -180,10 +220,10 @@ const ChatMsg = ({ msg }) => {
    Main ChatPage
 ───────────────────────────────────────────── */
 const SUGGESTIONS = [
-    { icon: 'fa-map-location-dot', text: '1n Kandy, 1n Ella, 1n Galle, 1n Colombo for 2 Pax from 13th March 2026' },
-    { icon: 'fa-umbrella-beach', text: 'Generate me a 5 nights itinerary in Sri Lanka' },
-    { icon: 'fa-mountain', text: 'Create the Sri Lanka for 5 days tour for 2 pax' },
-    { icon: 'fa-users', text: 'Create the Sri Lanka for 7 days tour for 6 pax' },
+    { icon: 'fa-map-location-dot', text: 'Create Singapore for 3 nights for 3 pax' },
+    { icon: 'fa-umbrella-beach', text: 'Create Sri Lanka for 5 days for 2 adults and 2 children, travel starts March 12th' },
+    { icon: 'fa-mountain', text: 'Create Malaysia for 2 adults and 1 child traveling on 5th April 2026 with 4-star hotel' },
+    { icon: 'fa-users', text: 'Create Thailand for 7 days for 4 pax from 1st May 2026' },
 ];
 
 const ChatPage = () => {
@@ -283,6 +323,17 @@ const ChatPage = () => {
                 const msgsD = await chatAPI.getMessages(d.chatSessionId);
                 setMessages(msgsD.messages || []);
 
+                // If no quotation number was returned, show the format guide card
+                if (!d.quotationNo || !d.isSuccess) {
+                    setMessages(prev => [...prev, {
+                        id: Date.now() + 2,
+                        role: 'assistant',
+                        is_format_error: true,
+                        content: '',
+                        created_at: new Date()
+                    }]);
+                }
+
                 // Update session ID if it changed (shouldn't anymore, but safety)
                 if (d.chatSessionId !== sessionId) {
                     setActiveSession({ id: d.chatSessionId });
@@ -291,10 +342,20 @@ const ChatPage = () => {
                 loadSessions();
             }
         } catch (e) {
-            setMessages(p => [...p, {
-                id: Date.now() + 1, role: 'assistant',
-                content: `⚠ Error: ${e.message}`, created_at: new Date()
-            }]);
+            setMessages(p => [...p,
+                {
+                    id: Date.now() + 1, role: 'assistant',
+                    content: `Sorry, there was an error processing your request. Please try again.`,
+                    created_at: new Date()
+                },
+                {
+                    id: Date.now() + 2,
+                    role: 'assistant',
+                    is_format_error: true,
+                    content: '',
+                    created_at: new Date()
+                }
+            ]);
         } finally { setSending(false); }
     };
 
@@ -415,8 +476,8 @@ const ChatPage = () => {
                             </div>
                             <h2 className="cp-welcome-title">AI-Powered Travel Quotation</h2>
                             <p className="cp-welcome-sub">
-                                Describe your dream destination, dates, group size and preferences —<br />
-                                our AI will generate a personalized quotation in seconds.
+                                Mention the <strong>country</strong>, <strong>duration</strong>, <strong>number of travellers</strong> and travel date.<br />
+                                Our AI will generate a personalized quotation in seconds.
                             </p>
                             <div className="cp-suggest-grid">
                                 {SUGGESTIONS.map(s => (
@@ -482,7 +543,7 @@ const ChatPage = () => {
                                 e.target.style.height = Math.min(e.target.scrollHeight, 140) + 'px';
                             }}
                             onKeyDown={onKeyDown}
-                            placeholder="Describe your travel plans… (Shift+Enter for new line)"
+                            placeholder="e.g., Create Singapore for 3 nights for 3 pax from 5th April (Shift+Enter for new line)"
                             rows={1}
                             disabled={sending}
                         />
