@@ -10,7 +10,17 @@ const getHeaders = () => {
 
 const handleResponse = async (res) => {
   const data = await res.json();
-  if (!res.ok) throw new Error(data.error || data.message || `Request failed: ${res.status}`);
+  if (!res.ok) {
+    if (res.status === 401) {
+      // Token expired or invalid — clear auth and redirect to login immediately
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      localStorage.removeItem('appleAccessToken');
+      window.location.href = '/login';
+      throw new Error('Session expired. Please log in again.');
+    }
+    throw new Error(data.error || data.message || `Request failed: ${res.status}`);
+  }
   return data;
 };
 
@@ -54,31 +64,37 @@ export const adminAPI = {
 };
 
 export const assistantAPI = {
-  sendMessage: async (chatInput, sessionId, chatId) => {
+  // backendSessionId: the DB chat_session id returned from a previous call in the same chat.
+  // Pass it so the backend reuses the same session (and n8n conversation context) instead of
+  // creating a brand-new session for every single message.
+  sendMessage: async (chatInput, sessionId, chatId, backendSessionId) => {
     const data = await fetch(`${API_URL}/chat/send`, {
       method: 'POST',
       headers: getHeaders(),
-      body: JSON.stringify({ chatSessionId: null, message: chatInput })
+      body: JSON.stringify({ chatSessionId: backendSessionId || null, message: chatInput })
     }).then(handleResponse);
 
     // Map backend response format to what the frontend expects
-    // Backend returns: { success, message: {content, quotation_no, is_success, ...}, quotationNo, isSuccess, chatSessionId }
-    // Frontend expects: { quotation_no, status, message, error, ... }
+    // Backend returns: { success, message: {content, ...}, quotationNo, isSuccess, chatSessionId }
+    // Frontend expects: { quotation_no, status, message, error, chatSessionId, ... }
     if (data.isSuccess && data.quotationNo) {
       return {
         quotation_no: data.quotationNo,
         status: 'success',
-        message: data.message?.content || `Quotation ${data.quotationNo} created successfully`
+        message: data.message?.content || `Quotation ${data.quotationNo} created successfully`,
+        chatSessionId: data.chatSessionId
       };
     } else if (data.success === false || data.error) {
       return {
         error: data.error || data.message?.content || 'Request failed',
-        success: false
+        success: false,
+        chatSessionId: data.chatSessionId
       };
     } else {
       return {
         message: data.message?.content || 'No quotation was generated.',
-        success: data.success
+        success: data.success,
+        chatSessionId: data.chatSessionId
       };
     }
   }

@@ -5,6 +5,19 @@ const AuthContext = createContext(null);
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
 /* ── helpers ── */
+
+// Decode the JWT payload (no signature check) just to read the `exp` claim.
+// Returns expiry as a Unix timestamp in milliseconds, or null on failure.
+const getTokenExpiryMs = (token) => {
+  try {
+    const payloadB64 = token.split('.')[1];
+    const payload = JSON.parse(atob(payloadB64));
+    return payload.exp ? payload.exp * 1000 : null;
+  } catch {
+    return null;
+  }
+};
+
 const applyTheme = (theme) => {
   document.documentElement.setAttribute('data-theme', theme);
   localStorage.setItem('theme', theme);
@@ -25,9 +38,18 @@ export const AuthProvider = ({ children }) => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const scheduleRefresh = useCallback((currentToken) => {
     clearRefreshTimer();
-    // Refresh token 1 hour before 24h expiry (so at 23h mark)
-    const refreshDelay = 23 * 60 * 60 * 1000;
-    refreshTimerRef.current = setTimeout(async () => {
+
+    // Calculate delay from actual JWT expiry, refreshing 5 minutes before it dies.
+    // Fall back to 23-hour fixed delay if the token can't be decoded.
+    const expiresAt = getTokenExpiryMs(currentToken);
+    const FIVE_MINUTES = 5 * 60 * 1000;
+    const refreshDelay = expiresAt
+      ? Math.max(expiresAt - Date.now() - FIVE_MINUTES, 0)
+      : 23 * 60 * 60 * 1000;
+
+    console.log(`[AUTH] Token refresh scheduled in ${Math.round(refreshDelay / 1000)}s`);
+
+    const doRefresh = async () => {
       try {
         const res = await fetch(`${API_URL}/auth/refresh`, {
           method: 'POST',
@@ -39,12 +61,26 @@ export const AuthProvider = ({ children }) => {
           setToken(data.token);
           scheduleRefresh(data.token);
         } else {
-          logout(); // eslint-disable-line react-hooks/exhaustive-deps
+          // Refresh endpoint rejected the token — force logout
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          localStorage.removeItem('appleAccessToken');
+          setToken(null);
+          setUser(null);
+          setIsAuthenticated(false);
+          window.location.href = '/login';
         }
       } catch (e) {
         console.error('[AUTH] Token refresh failed:', e.message);
       }
-    }, refreshDelay);
+    };
+
+    if (refreshDelay === 0) {
+      // Token is already expired or within the 5-minute buffer — refresh immediately
+      doRefresh();
+    } else {
+      refreshTimerRef.current = setTimeout(doRefresh, refreshDelay);
+    }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -53,6 +89,18 @@ export const AuthProvider = ({ children }) => {
 
     if (storedToken && storedUser) {
       try {
+        // Reject outright if the token is already past its expiry time
+        const expiresAt = getTokenExpiryMs(storedToken);
+        if (expiresAt && Date.now() > expiresAt) {
+          console.warn('[AUTH] Stored token is expired on startup. Clearing session.');
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          localStorage.removeItem('appleAccessToken');
+          applyTheme(localStorage.getItem('theme') || 'dark');
+          setIsLoading(false);
+          return;
+        }
+
         const userData = JSON.parse(storedUser);
         setToken(storedToken);
         setUser(userData);

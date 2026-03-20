@@ -89,8 +89,8 @@ const TravelQuotationPage = () => {
       id: chatId,
       title: 'New Chat',
       createdAt: new Date().toISOString(),
-      messages: []
-      // No longer store sessionId in chat - we'll use auth token dynamically
+      messages: [],
+      backendSessionId: null  // will be set on the first message and reused for all subsequent ones
     };
 
     const updatedChats = { ...chats, [chatId]: newChat };
@@ -163,8 +163,8 @@ const TravelQuotationPage = () => {
         id: chatId,
         title: trimmedMessage.substring(0, 50) + (trimmedMessage.length > 50 ? '...' : ''),
         createdAt: new Date().toISOString(),
-        messages: []
-        // No longer store sessionId - we use auth token
+        messages: [],
+        backendSessionId: null  // will be set after the first API call
       };
       const updatedChats = { ...chats, [chatId]: newChat };
       setChats(updatedChats);
@@ -234,24 +234,35 @@ const TravelQuotationPage = () => {
         return;
       }
 
-      // Keep original sessionId stable for n8n; fallback to token if missing
-      const effectiveSessionId = sessionId || token;
+      // Reuse the backend DB session from previous messages in this same chat so that
+      // the backend (and n8n) maintains a single, isolated conversation context per chat.
+      // On the first message backendSessionId is null and the backend will create a new session;
+      // we then store the returned chatSessionId and use it for every subsequent message.
+      const storedBackendSessionId = chats[chatId]?.backendSessionId || null;
 
-      console.log('═══════════════════════════════════════════════════');
-      console.log('📨 [SESSION ID] Generated Session ID:', effectiveSessionId);
-      console.log('🔑 [AUTH TOKEN] Current Token:', token);
-      console.log('✅ [AUTH TOKEN] Token present:', !!token);
-      console.log('═══════════════════════════════════════════════════');
       console.log('[SEND MESSAGE] Chat ID:', chatId);
-      console.log('[SEND MESSAGE] Session ID for N8N:', effectiveSessionId);
+      console.log('[SEND MESSAGE] Backend session ID:', storedBackendSessionId || '(will create new)');
       console.log('[SEND MESSAGE] Auth Token present:', !!token);
-      console.log('[SEND MESSAGE] Sending to N8N webhook with:', {
+      console.log('[SEND MESSAGE] Sending to backend with:', {
         chatInput: trimmedMessage,
-        sessionId: effectiveSessionId,
+        backendSessionId: storedBackendSessionId,
         user: user?.email || 'unknown'
       });
 
-      const response = await assistantAPI.sendMessage(trimmedMessage, effectiveSessionId, chatId);
+      const response = await assistantAPI.sendMessage(trimmedMessage, null, chatId, storedBackendSessionId);
+
+      // Persist the backend session ID into this chat so all subsequent messages in the
+      // same frontend chat reuse the same DB session and n8n conversation context.
+      if (response.chatSessionId && !storedBackendSessionId) {
+        setChats(prev => {
+          const updated = {
+            ...prev,
+            [chatId]: { ...prev[chatId], backendSessionId: response.chatSessionId }
+          };
+          localStorage.setItem('travel_chats', JSON.stringify(updated));
+          return updated;
+        });
+      }
 
       let assistantMessage = '';
       let isSuccess = false;
