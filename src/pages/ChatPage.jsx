@@ -255,10 +255,10 @@ const ChatMsg = ({ msg, recommendations, onSelectPrompt }) => {
    Main ChatPage
 ───────────────────────────────────────────── */
 const SUGGESTIONS = [
-    { icon: 'fa-map-location-dot', text: 'Create Singapore for 3 nights for 3 pax' },
+    { icon: 'fa-map-location-dot', text: ' Create a trip to Singapore for 3 nights for 3 pax' },
     { icon: 'fa-umbrella-beach', text: 'Create Sri Lanka for 5 days for 2 adults and 2 children, travel starts March 12th' },
     { icon: 'fa-mountain', text: 'Create Malaysia for 2 adults and 1 child traveling on 5th April 2026 with 4-star hotel' },
-    { icon: 'fa-users', text: 'Create Thailand for 7 days for 4 pax from 1st May 2026' },
+    { icon: 'fa-users', text: 'Create a vietnam for 2 nights Phu Quoc  for 10 adults from May 10 with 2 double and 2 triple rooms and give me private tours.' },
 ];
 
 const ChatPage = () => {

@@ -59,6 +59,10 @@ export const AuthProvider = ({ children }) => {
           const data = await res.json();
           localStorage.setItem('token', data.token);
           setToken(data.token);
+          // If server returned a refreshed Apple token (for agents), persist it
+          if (data.appleAccessToken) {
+            localStorage.setItem('appleAccessToken', data.appleAccessToken);
+          }
           scheduleRefresh(data.token);
         } else {
           // Refresh endpoint rejected the token — force logout
