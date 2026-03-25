@@ -351,8 +351,8 @@ const ChatPage = () => {
                 // so the API has time to finish configuration
                 if (d.isSuccess && d.quotationNo) {
                     setAlmostThere(true);
-                    // Wait 10 seconds for API configuration to complete
-                    await new Promise(resolve => setTimeout(resolve, 10000));
+                    // Wait 12 seconds for API configuration to complete
+                    await new Promise(resolve => setTimeout(resolve, 12000));
                     setAlmostThere(false);
                 }
 
