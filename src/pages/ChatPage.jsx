@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { chatAPI, quotationAPI } from '../services/api';
 import { getOptimizedPrompts } from '../services/promptOptimizer';
@@ -264,7 +264,7 @@ const SUGGESTIONS = [
 const ChatPage = () => {
     const { user, logout, theme, toggleTheme } = useAuth();
     const navigate = useNavigate();
-
+    const currentLocation = useLocation();
     const [sessions, setSessions] = useState([]);
     const [activeSession, setActiveSession] = useState(null);
     const [messages, setMessages] = useState([]);
@@ -501,7 +501,7 @@ const ChatPage = () => {
                 {/* Topbar */}
                 <div className="cp-topbar">
                     <button className="cp-topbar-toggle" onClick={() => setSidebarOpen(p => !p)} title="Toggle sidebar">
-                        <i className={`fas fa-${sidebarOpen ? 'sidebar' : 'bars'}`} />
+                        <i className={`fas fa-${sidebarOpen ? 'times' : 'bars'}`} />
                     </button>
                     <div className="cp-topbar-title">
                         <i className="fas fa-robot" style={{ color: '#06b6d4', marginRight: 8 }} />
@@ -512,6 +512,9 @@ const ChatPage = () => {
                             <i className="fas fa-plus" /> New Chat
                         </button>
                     )}
+                    <button className="cp-topbar-dashboard" onClick={() => navigate(currentLocation.pathname === '/agent-chat' ? '/agent-dashboard' : '/dashboard')} title="Go to Dashboard">
+                        <i className="fas fa-th-large" /> Dashboard
+                    </button>
                 </div>
 
                 {/* Messages / Welcome */}

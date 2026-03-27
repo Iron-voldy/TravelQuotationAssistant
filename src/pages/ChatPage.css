@@ -415,6 +415,29 @@
     color: #93c5fd;
 }
 
+.cp-topbar-dashboard {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    background: rgba(6, 182, 212, 0.08);
+    border: 1px solid rgba(6, 182, 212, 0.2);
+    border-radius: 8px;
+    color: rgba(6, 182, 212, 0.85);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 7px 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'Inter', sans-serif;
+    flex-shrink: 0;
+}
+
+.cp-topbar-dashboard:hover {
+    background: rgba(6, 182, 212, 0.15);
+    border-color: rgba(6, 182, 212, 0.4);
+    color: #22d3ee;
+}
+
 /* Messages scroll area */
 .cp-messages {
     flex: 1;
@@ -1823,7 +1846,16 @@
     color: #3b82f6;
 }
 
-/* Messages */
+[data-theme="light"] .cp-topbar-dashboard {
+    background: rgba(6, 182, 212, 0.06);
+    border-color: rgba(6, 182, 212, 0.2);
+    color: #0891b2;
+}
+[data-theme="light"] .cp-topbar-dashboard:hover {
+    background: rgba(6, 182, 212, 0.12);
+    border-color: rgba(6, 182, 212, 0.35);
+    color: #0e7490;
+}
 [data-theme="light"] .cp-messages {
     scrollbar-color: rgba(0, 0, 0, 0.08) transparent;
 }
