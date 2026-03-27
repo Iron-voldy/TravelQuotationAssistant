@@ -1,0 +1,133 @@
+/* ══════════════════════════════════════════════
+   StatusBadge — Theme-aware badge component
+══════════════════════════════════════════════ */
+
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: capitalize;
+    letter-spacing: 0.3px;
+}
+
+.status-badge__dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+}
+
+/* ── Dark mode (default) ── */
+.status-badge--pending {
+    background: rgba(245, 158, 11, 0.12);
+    color: #f59e0b;
+}
+.status-badge--pending .status-badge__dot { background: #f59e0b; }
+
+.status-badge--accepted {
+    background: rgba(16, 185, 129, 0.12);
+    color: #10b981;
+}
+.status-badge--accepted .status-badge__dot { background: #10b981; }
+
+.status-badge--rejected {
+    background: rgba(239, 68, 68, 0.12);
+    color: #ef4444;
+}
+.status-badge--rejected .status-badge__dot { background: #ef4444; }
+
+.status-badge--expired {
+    background: rgba(100, 116, 139, 0.12);
+    color: #64748b;
+}
+.status-badge--expired .status-badge__dot { background: #64748b; }
+
+.status-badge--admin {
+    background: rgba(139, 92, 246, 0.12);
+    color: #8b5cf6;
+}
+.status-badge--admin .status-badge__dot { background: #8b5cf6; }
+
+.status-badge--user {
+    background: rgba(59, 130, 246, 0.12);
+    color: #3b82f6;
+}
+.status-badge--user .status-badge__dot { background: #3b82f6; }
+
+.status-badge--active {
+    background: rgba(16, 185, 129, 0.12);
+    color: #10b981;
+}
+.status-badge--active .status-badge__dot { background: #10b981; }
+
+.status-badge--inactive {
+    background: rgba(239, 68, 68, 0.12);
+    color: #ef4444;
+}
+.status-badge--inactive .status-badge__dot { background: #ef4444; }
+
+.status-badge--default {
+    background: rgba(148, 163, 184, 0.12);
+    color: #94a3b8;
+}
+.status-badge--default .status-badge__dot { background: #94a3b8; }
+
+/* ── Light mode overrides ── */
+[data-theme="light"] .status-badge--pending {
+    background: rgba(245, 158, 11, 0.14);
+    color: #b45309;
+}
+[data-theme="light"] .status-badge--pending .status-badge__dot { background: #d97706; }
+
+[data-theme="light"] .status-badge--accepted {
+    background: rgba(16, 185, 129, 0.14);
+    color: #047857;
+}
+[data-theme="light"] .status-badge--accepted .status-badge__dot { background: #059669; }
+
+[data-theme="light"] .status-badge--rejected {
+    background: rgba(239, 68, 68, 0.14);
+    color: #b91c1c;
+}
+[data-theme="light"] .status-badge--rejected .status-badge__dot { background: #dc2626; }
+
+[data-theme="light"] .status-badge--expired {
+    background: rgba(100, 116, 139, 0.14);
+    color: #475569;
+}
+[data-theme="light"] .status-badge--expired .status-badge__dot { background: #64748b; }
+
+[data-theme="light"] .status-badge--admin {
+    background: rgba(139, 92, 246, 0.14);
+    color: #6d28d9;
+}
+[data-theme="light"] .status-badge--admin .status-badge__dot { background: #7c3aed; }
+
+[data-theme="light"] .status-badge--user {
+    background: rgba(59, 130, 246, 0.14);
+    color: #1d4ed8;
+}
+[data-theme="light"] .status-badge--user .status-badge__dot { background: #2563eb; }
+
+[data-theme="light"] .status-badge--active {
+    background: rgba(16, 185, 129, 0.14);
+    color: #047857;
+}
+[data-theme="light"] .status-badge--active .status-badge__dot { background: #059669; }
+
+[data-theme="light"] .status-badge--inactive {
+    background: rgba(239, 68, 68, 0.14);
+    color: #b91c1c;
+}
+[data-theme="light"] .status-badge--inactive .status-badge__dot { background: #dc2626; }
+
+[data-theme="light"] .status-badge--default {
+    background: rgba(100, 116, 139, 0.14);
+    color: #475569;
+}
+[data-theme="light"] .status-badge--default .status-badge__dot { background: #64748b; }

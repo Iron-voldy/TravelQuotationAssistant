@@ -3,6 +3,7 @@ import AppLayout from '../components/layout/AppLayout';
 import StatusBadge from '../components/ui/StatusBadge';
 import Toast, { useToast } from '../components/ui/Toast';
 import { adminAPI } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import './DashboardPage.css';
 
 const AdminUsers = () => {
@@ -43,6 +44,7 @@ const AdminUsers = () => {
         }
     };
 
+    const { theme } = useAuth();
     const fmt = d => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
     return (
@@ -104,8 +106,11 @@ const AdminUsers = () => {
                                             <td><StatusBadge status={u.role} /></td>
                                             <td>
                                                 <span style={{
-                                                    fontWeight: 700, color: 'var(--accent-cyan)',
-                                                    background: 'rgba(6,182,212,0.1)', padding: '2px 8px', borderRadius: 4, fontSize: 13
+                                                    fontWeight: 700,
+                                                    color: theme === 'dark' ? 'var(--accent-cyan)' : '#0891b2',
+                                                    background: theme === 'dark' ? 'rgba(6,182,212,0.1)' : 'rgba(6,182,212,0.12)',
+                                                    border: `1px solid ${theme === 'dark' ? 'rgba(6,182,212,0.15)' : 'rgba(6,182,212,0.25)'}`,
+                                                    padding: '2px 8px', borderRadius: 4, fontSize: 13
                                                 }}>{u.quotation_count}</span>
                                             </td>
                                             <td><StatusBadge status={u.is_active ? 'active' : 'inactive'} /></td>

@@ -28,10 +28,28 @@ const RegisterPage = () => {
     return () => clearInterval(timer);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
   const handleSubmit = async (e) => {
     e.preventDefault(); setError('');
-    if (form.password !== form.confirmPassword) return setError('Passwords do not match.');
+
+    // Name
+    if (!form.name.trim()) return setError('Full name is required.');
+    if (form.name.trim().length < 2) return setError('Full name must be at least 2 characters.');
+    if (form.name.trim().length > 100) return setError('Full name must be 100 characters or fewer.');
+
+    // Email
+    if (!form.email.trim()) return setError('Email address is required.');
+    if (!emailRegex.test(form.email)) return setError('Please enter a valid email address (e.g. you@example.com).');
+
+    // Password
+    if (!form.password) return setError('Password is required.');
     if (form.password.length < 6) return setError('Password must be at least 6 characters.');
+
+    // Confirm password
+    if (!form.confirmPassword) return setError('Please confirm your password.');
+    if (form.password !== form.confirmPassword) return setError('Passwords do not match. Please re-enter them.');
+
     setLoading(true);
     try {
       await register(form.name, form.email, form.password, form.confirmPassword);
@@ -89,18 +107,18 @@ const RegisterPage = () => {
 
           {error && <div className="ulogin-error"><i className="fas fa-exclamation-circle" /> {error}</div>}
 
-          <form onSubmit={handleSubmit} className="ulogin-form">
+          <form onSubmit={handleSubmit} className="ulogin-form" noValidate>
             <div className="form-group">
               <label className="form-label"><i className="fas fa-user" style={{ marginRight: 6, color: '#10b981' }} />Full Name</label>
               <input className="form-input" type="text" value={form.name}
-                onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
+                onChange={e => { setForm(p => ({ ...p, name: e.target.value })); setError(''); }}
                 placeholder="John Smith" required autoFocus />
             </div>
 
             <div className="form-group">
               <label className="form-label"><i className="fas fa-envelope" style={{ marginRight: 6, color: '#10b981' }} />Email Address</label>
               <input className="form-input" type="email" value={form.email}
-                onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
+                onChange={e => { setForm(p => ({ ...p, email: e.target.value })); setError(''); }}
                 placeholder="you@example.com" required />
             </div>
 
@@ -109,8 +127,8 @@ const RegisterPage = () => {
                 <label className="form-label"><i className="fas fa-lock" style={{ marginRight: 6, color: '#10b981' }} />Password</label>
                 <div className="input-icon-wrap">
                   <input className="form-input" type={showPwd ? 'text' : 'password'} value={form.password}
-                    onChange={e => setForm(p => ({ ...p, password: e.target.value }))}
-                    placeholder="Min. 6 chars" required minLength={6} style={{ paddingRight: 44 }} />
+                    onChange={e => { setForm(p => ({ ...p, password: e.target.value })); setError(''); }}
+                    placeholder="Min. 6 chars" style={{ paddingRight: 44 }} />
                   <button type="button" className="input-toggle" onClick={() => setShowPwd(p => !p)}>
                     <i className={`fas ${showPwd ? 'fa-eye-slash' : 'fa-eye'}`} />
                   </button>
@@ -119,7 +137,7 @@ const RegisterPage = () => {
               <div className="form-group">
                 <label className="form-label"><i className="fas fa-check" style={{ marginRight: 6, color: '#10b981' }} />Confirm</label>
                 <input className="form-input" type={showPwd ? 'text' : 'password'} value={form.confirmPassword}
-                  onChange={e => setForm(p => ({ ...p, confirmPassword: e.target.value }))}
+                  onChange={e => { setForm(p => ({ ...p, confirmPassword: e.target.value })); setError(''); }}
                   placeholder="Re-enter" required />
               </div>
             </div>

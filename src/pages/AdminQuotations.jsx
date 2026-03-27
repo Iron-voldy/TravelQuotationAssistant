@@ -3,6 +3,7 @@ import AppLayout from '../components/layout/AppLayout';
 import StatusBadge from '../components/ui/StatusBadge';
 import Toast, { useToast } from '../components/ui/Toast';
 import { adminAPI } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import './DashboardPage.css';
 
 const AdminQuotations = () => {
@@ -13,6 +14,7 @@ const AdminQuotations = () => {
     const [totalPages, setTotalPages] = useState(1);
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
+    const { theme } = useAuth();
     const [expanded, setExpanded] = useState(null);
     const { toasts, toast, removeToast } = useToast();
     const LIMIT = 15;
@@ -110,19 +112,19 @@ const AdminQuotations = () => {
                                                     <td colSpan={7} style={{ padding: 0 }}>
                                                         <div style={{
                                                             padding: '16px 24px',
-                                                            background: 'rgba(255,255,255,0.02)',
+                                                            background: theme === 'dark' ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)',
                                                             borderBottom: '1px solid var(--border)'
                                                         }}>
                                                             <div style={{ marginBottom: 12 }}>
                                                                 <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1 }}>Full Request</div>
-                                                                <div style={{ color: 'var(--text-secondary)', fontSize: 13, lineHeight: 1.6, background: 'rgba(0,0,0,0.2)', padding: '10px 14px', borderRadius: 8 }}>
+                                                                <div style={{ color: 'var(--text-secondary)', fontSize: 13, lineHeight: 1.6, background: theme === 'dark' ? 'rgba(0,0,0,0.2)' : 'rgba(0,0,0,0.04)', padding: '10px 14px', borderRadius: 8 }}>
                                                                     {q.prompt_text}
                                                                 </div>
                                                             </div>
                                                             {q.response_data && (
                                                                 <div>
                                                                     <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1 }}>Response Data</div>
-                                                                    <pre style={{ color: 'var(--accent-cyan)', fontSize: 12, background: 'rgba(0,0,0,0.2)', padding: '10px 14px', borderRadius: 8, overflow: 'auto' }}>
+                                                                    <pre style={{ color: 'var(--accent-cyan)', fontSize: 12, background: theme === 'dark' ? 'rgba(0,0,0,0.2)' : 'rgba(0,0,0,0.04)', padding: '10px 14px', borderRadius: 8, overflow: 'auto' }}>
                                                                         {JSON.stringify(q.response_data, null, 2)}
                                                                     </pre>
                                                                 </div>

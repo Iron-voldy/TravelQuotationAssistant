@@ -6,6 +6,7 @@ import StatsCard from '../components/ui/StatsCard';
 import StatusBadge from '../components/ui/StatusBadge';
 import Toast, { useToast } from '../components/ui/Toast';
 import { adminAPI } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import './AdminDashboard.css';
 
 const AdminDashboard = () => {
@@ -13,6 +14,7 @@ const AdminDashboard = () => {
     const [loading, setLoading] = useState(true);
     const [recentQuotations, setRecentQuotations] = useState([]);
     const { toasts, toast, removeToast } = useToast();
+    const { theme } = useAuth();
 
     useEffect(() => {
         const load = async () => {
@@ -37,7 +39,7 @@ const AdminDashboard = () => {
     const CustomTooltip = ({ active, payload, label }) => {
         if (active && payload?.length) {
             return (
-                <div style={{ background: '#111827', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 14px', fontSize: 12 }}>
+                <div style={{ background: theme === 'dark' ? '#111827' : '#ffffff', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 14px', fontSize: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
                     <p style={{ color: 'var(--text-muted)', marginBottom: 4 }}>{label}</p>
                     <p style={{ color: 'var(--accent-cyan)', fontWeight: 600 }}>{payload[0].value} quotations</p>
                 </div>
@@ -74,7 +76,7 @@ const AdminDashboard = () => {
                             <div style={{ height: 220, padding: '16px 16px 0' }}>
                                 <ResponsiveContainer width="100%" height="100%">
                                     <LineChart data={stats?.dailyTrend || []}>
-                                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                                        <CartesianGrid strokeDasharray="3 3" stroke={theme === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.07)'} />
                                         <XAxis dataKey="date" tick={{ fill: 'var(--text-muted)', fontSize: 11 }} tickFormatter={d => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} interval="preserveStartEnd" />
                                         <YAxis tick={{ fill: 'var(--text-muted)', fontSize: 11 }} />
                                         <Tooltip content={<CustomTooltip />} />
