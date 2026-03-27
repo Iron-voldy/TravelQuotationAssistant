@@ -303,13 +303,9 @@ const ChatPage = () => {
         finally { setLoadingMsgs(false); }
     };
 
-    const newChat = async () => {
-        try {
-            const d = await chatAPI.createSession('New Chat');
-            setSessions(p => [d.session, ...p]);
-            setActiveSession(d.session);
-            setMessages([]);
-        } catch { }
+    const newChat = () => {
+        setActiveSession(null);
+        setMessages([]);
     };
 
     const deleteSession = async (e, id) => {
