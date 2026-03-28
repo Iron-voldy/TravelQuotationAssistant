@@ -286,6 +286,8 @@ const ChatPage = () => {
 
     const endRef = useRef(null);
     const textareaRef = useRef(null);
+    // Tracks which session the current in-flight send belongs to
+    const sendingSessionRef = useRef(null);
 
     useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, sending, almostThere]);
 
@@ -314,6 +316,10 @@ const ChatPage = () => {
     const newChat = () => {
         setActiveSession(null);
         setMessages([]);
+        // Don't cancel the in-flight request, but stop showing the loader
+        // in this new empty view — sending is scoped to the originating session
+        setSending(false);
+        setAlmostThere(false);
     };
 
     const deleteSession = async (e, id) => {
@@ -380,27 +386,39 @@ const ChatPage = () => {
                 setSessions(p => [newSession, ...p]);
             }
 
+            // Record which session this send belongs to so we can
+            // restore it correctly after the async response lands
+            sendingSessionRef.current = sessionId;
+
             // Send message with confirmed session ID
             const d = await chatAPI.sendMessage(sessionId, msg);
 
             if (d.chatSessionId) {
-                // Check if a quotation was created — add 10-second delay
-                // so the API has time to finish configuration
+                // Check if a quotation was created — add 12-second delay
                 if (d.isSuccess && d.quotationNo) {
                     setAlmostThere(true);
-                    // Wait 12 seconds for API configuration to complete
                     await new Promise(resolve => setTimeout(resolve, 12000));
                     setAlmostThere(false);
                 }
 
-                // Reload messages from server for this session
-                const msgsD = await chatAPI.getMessages(d.chatSessionId);
+                // Always navigate back to the session that originated this send.
+                // The user may have clicked "New Chat" mid-flight, so we must
+                // restore the correct session and its messages.
+                const respondingSessionId = d.chatSessionId;
+                const msgsD = await chatAPI.getMessages(respondingSessionId);
+
+                // Restore active session so sidebar highlights the right item
+                setSessions(prev => {
+                    const found = prev.find(s => s.id === respondingSessionId);
+                    if (found) setActiveSession(found);
+                    else setActiveSession({ id: respondingSessionId });
+                    return prev;
+                });
                 setMessages(msgsD.messages || []);
 
                 // If no quotation number was returned, show the format guide card
                 if (!d.quotationNo || !d.isSuccess) {
                     const guideId = `guide_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
-                    // Set loading state FIRST in same logic tick, then add message
                     setAiRecsMap(prev => ({ ...prev, [guideId]: null }));
                     setMessages(prev => [...prev, {
                         id: guideId,
@@ -409,18 +427,14 @@ const ChatPage = () => {
                         content: '',
                         created_at: new Date()
                     }]);
-                    // Fetch AI recs — on failure keep null so spinner stays, then fallback after 8s
                     getOptimizedPrompts(msg).then(recs => {
                         setAiRecsMap(prev => ({ ...prev, [guideId]: recs !== null ? recs : [] }));
                     });
                 }
 
-                // Update session ID if it changed (shouldn't anymore, but safety)
-                if (d.chatSessionId !== sessionId) {
-                    setActiveSession({ id: d.chatSessionId });
-                }
                 // Refresh sessions list to get updated titles/timestamps
                 loadSessions();
+                sendingSessionRef.current = null;
             }
         } catch (e) {
             const guideId = `guide_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
