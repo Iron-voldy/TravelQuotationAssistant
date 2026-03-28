@@ -1907,15 +1907,16 @@
 
 [data-theme="light"] .cp-suggest-tile {
     background: #ffffff;
-    border-color: rgba(0, 0, 0, 0.08);
-    color: #475569;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+    border: 1.5px solid #cbd5e1;
+    color: #334155;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06), 0 0 0 0 transparent;
 }
 [data-theme="light"] .cp-suggest-tile:hover {
-    background: rgba(59, 130, 246, 0.04);
-    border-color: rgba(59, 130, 246, 0.2);
-    color: #0f172a;
-    box-shadow: 0 4px 16px rgba(59, 130, 246, 0.08);
+    background: #f0f7ff;
+    border-color: #3b82f6;
+    color: #1e40af;
+    box-shadow: 0 4px 16px rgba(59, 130, 246, 0.15);
+    transform: translateY(-2px);
 }
 
 /* Input area */
