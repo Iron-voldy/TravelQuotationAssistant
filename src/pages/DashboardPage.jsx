@@ -16,6 +16,8 @@ const DashboardPage = () => {
     const [totalPages, setTotalPages] = useState(1);
     const [statusFilter, setStatusFilter] = useState('');
     const [search, setSearch] = useState('');
+    const [dateFrom, setDateFrom] = useState('');
+    const [dateTo, setDateTo] = useState('');
     const [confirm, setConfirm] = useState({ open: false, id: null, action: null });
     const { toasts, toast, removeToast } = useToast();
     const LIMIT = 10;
@@ -26,6 +28,8 @@ const DashboardPage = () => {
             const params = { page, limit: LIMIT };
             if (statusFilter) params.status = statusFilter;
             if (search) params.search = search;
+            if (dateFrom) params.dateFrom = dateFrom;
+            if (dateTo) params.dateTo = dateTo;
             const data = await quotationAPI.list(params);
             setQuotations(data.data || []);
             setTotal(data.total || 0);
@@ -39,7 +43,7 @@ const DashboardPage = () => {
         } finally {
             setLoading(false);
         }
-    }, [page, statusFilter, search]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [page, statusFilter, search, dateFrom, dateTo]); // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => { loadQuotations(); }, [loadQuotations]);
 
@@ -100,6 +104,20 @@ const DashboardPage = () => {
                             <option value="accepted">Accepted</option>
                             <option value="rejected">Rejected</option>
                         </select>
+                        <div className="date-filter-group">
+                            <span className="date-filter-label"><i className="fas fa-calendar-days" /> From</span>
+                            <input type="date" className="select-input date-input" value={dateFrom}
+                                onChange={e => { setDateFrom(e.target.value); setPage(1); }} />
+                            <span className="date-filter-label">To</span>
+                            <input type="date" className="select-input date-input" value={dateTo}
+                                onChange={e => { setDateTo(e.target.value); setPage(1); }} />
+                            {(dateFrom || dateTo) && (
+                                <button className="search-clear-btn" title="Clear dates"
+                                    onClick={() => { setDateFrom(''); setDateTo(''); setPage(1); }}>
+                                    <i className="fas fa-xmark" />
+                                </button>
+                            )}
+                        </div>
                     </div>
                 </div>
 

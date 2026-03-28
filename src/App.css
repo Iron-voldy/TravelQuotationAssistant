@@ -661,6 +661,43 @@ body {
   background: #111827;
 }
 
+/* ── Date filter group ── */
+.date-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.date-filter-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.date-input {
+  padding: 8px 10px;
+  width: auto;
+  min-width: 130px;
+  cursor: pointer;
+}
+
+.date-input::-webkit-calendar-picker-indicator {
+  filter: invert(0.6);
+  cursor: pointer;
+}
+
+[data-theme="light"] .date-input::-webkit-calendar-picker-indicator {
+  filter: none;
+}
+
+[data-theme="light"] .date-filter-label {
+  color: #64748b;
+}
+
 /* ════════════════ PAGINATION ════════════════ */
 .pagination {
   display: flex;
