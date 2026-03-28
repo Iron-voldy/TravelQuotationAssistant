@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { chatAPI, quotationAPI } from '../services/api';
 import { getOptimizedPrompts } from '../services/promptOptimizer';
+import { ConfirmModal } from '../components/ui/Modal';
 import './ChatPage.css';
 
 /* ─────────────────────────────────────────────
@@ -303,6 +304,7 @@ const ChatPage = () => {
     const [loadingMsgs, setLoadingMsgs] = useState(false);
     const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth > 767);
     const [almostThere, setAlmostThere] = useState(false);
+    const [deleteConfirm, setDeleteConfirm] = useState(null); // session id pending delete
     // Map of guideId -> recommendations array (null=loading, []=fallback, [...]=AI recs)
     const [aiRecsMap, setAiRecsMap] = useState({});
 
@@ -346,6 +348,12 @@ const ChatPage = () => {
 
     const deleteSession = async (e, id) => {
         e.stopPropagation();
+        setDeleteConfirm(id);
+    };
+
+    const confirmDeleteSession = async () => {
+        const id = deleteConfirm;
+        setDeleteConfirm(null);
         try {
             await chatAPI.deleteSession(id);
             setSessions(p => p.filter(s => s.id !== id));
@@ -493,6 +501,17 @@ const ChatPage = () => {
 
     return (
         <div className="cp-root">
+            {/* Delete chat confirmation modal */}
+            <ConfirmModal
+                isOpen={!!deleteConfirm}
+                onClose={() => setDeleteConfirm(null)}
+                onConfirm={confirmDeleteSession}
+                title="Delete Chat"
+                message="Are you sure you want to delete this chat? All messages in this chat will be permanently removed."
+                confirmText="Delete"
+                danger
+            />
+
             {/* Mobile overlay when sidebar is open */}
             {sidebarOpen && (
                 <div className="cp-sidebar-overlay" onClick={() => setSidebarOpen(false)} />
