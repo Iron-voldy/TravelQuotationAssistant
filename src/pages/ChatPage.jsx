@@ -513,7 +513,14 @@ const ChatPage = () => {
 
     const handleLogout = () => { logout(); navigate('/login', { replace: true }); };
 
-    const fmtDate = d => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const fmtDate = d => {
+        const date = new Date(d);
+        const now = new Date();
+        const isToday = date.toDateString() === now.toDateString();
+        return isToday
+            ? date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+            : date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    };
     const sessionTitle = sessions.find(s => s.id === activeSession?.id)?.title || 'TravelAI';
 
     return (
