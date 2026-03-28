@@ -67,10 +67,18 @@ const DashboardPage = () => {
             </div>
 
             <div className="stats-grid">
-                <StatsCard title="Total Quotations" value={stats.total} icon="fas fa-file-invoice" color="blue" delay={0} />
-                <StatsCard title="Pending" value={stats.pending} icon="fas fa-clock" color="amber" delay={100} />
-                <StatsCard title="Accepted" value={stats.accepted} icon="fas fa-circle-check" color="green" delay={200} />
-                <StatsCard title="Rejected" value={stats.rejected} icon="fas fa-circle-xmark" color="red" delay={300} />
+                <StatsCard title="Total Quotations" value={stats.total} icon="fas fa-file-invoice" color="blue" delay={0}
+                    active={statusFilter === ''}
+                    onClick={() => { setStatusFilter(''); setPage(1); }} />
+                <StatsCard title="Pending" value={stats.pending} icon="fas fa-clock" color="amber" delay={100}
+                    active={statusFilter === 'pending'}
+                    onClick={() => { setStatusFilter(statusFilter === 'pending' ? '' : 'pending'); setPage(1); }} />
+                <StatsCard title="Accepted" value={stats.accepted} icon="fas fa-circle-check" color="green" delay={200}
+                    active={statusFilter === 'accepted'}
+                    onClick={() => { setStatusFilter(statusFilter === 'accepted' ? '' : 'accepted'); setPage(1); }} />
+                <StatsCard title="Rejected" value={stats.rejected} icon="fas fa-circle-xmark" color="red" delay={300}
+                    active={statusFilter === 'rejected'}
+                    onClick={() => { setStatusFilter(statusFilter === 'rejected' ? '' : 'rejected'); setPage(1); }} />
             </div>
 
             <div className="glass-card">
@@ -80,6 +88,11 @@ const DashboardPage = () => {
                         <div className="search-box">
                             <span className="search-icon"><i className="fas fa-magnifying-glass" /></span>
                             <input placeholder="Search quotation no..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} />
+                            {search && (
+                                <button className="search-clear-btn" onClick={() => { setSearch(''); setPage(1); }} title="Clear search">
+                                    <i className="fas fa-xmark" />
+                                </button>
+                            )}
                         </div>
                         <select className="select-input" value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1); }}>
                             <option value="">All Status</option>

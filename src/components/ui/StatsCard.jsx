@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import './StatsCard.css';
 
-const StatsCard = ({ title, value, icon, color = 'blue', subtitle, delay = 0 }) => {
+const StatsCard = ({ title, value, icon, color = 'blue', subtitle, delay = 0, onClick, active }) => {
     const [count, setCount] = useState(0);
     const numericValue = parseInt(String(value).replace(/\D/g, '')) || 0;
     const isPercent = String(value).includes('%');
@@ -24,8 +24,10 @@ const StatsCard = ({ title, value, icon, color = 'blue', subtitle, delay = 0 }) 
 
     return (
         <div
-            className={`stats-card stats-card--${color}`}
-            style={{ animationDelay: `${delay}ms` }}
+            className={`stats-card stats-card--${color}${active ? ' stats-card--active' : ''}`}
+            style={{ animationDelay: `${delay}ms`, cursor: onClick ? 'pointer' : 'default' }}
+            onClick={onClick}
+            title={onClick ? `Filter by ${title}` : undefined}
         >
             <div className="stats-card-glow" />
             <div className="stats-card-icon">

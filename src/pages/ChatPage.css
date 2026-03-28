@@ -1160,6 +1160,7 @@
     cursor: not-allowed;
 }
 
+
 /* ── Generic spinner ──────────────────────── */
 .spinner {
     width: 32px;
@@ -1944,13 +1945,28 @@
 }
 
 [data-theme="light"] .cp-char-hint {
-    color: #94a3b8;
+    color: #64748b;
 }
 
 [data-theme="light"] .cp-send-btn {
-    background: rgba(0, 0, 0, 0.04);
-    border-color: rgba(0, 0, 0, 0.08);
+    background: #e2e8f0;
+    border-color: #cbd5e1;
+    color: #64748b;
+}
+
+[data-theme="light"] .cp-send-btn.active {
+    background: linear-gradient(135deg, #3b82f6, #06b6d4);
+    border-color: transparent;
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(59, 130, 246, 0.35);
+}
+
+[data-theme="light"] .cp-send-btn:disabled {
+    background: #e2e8f0;
+    border-color: #e2e8f0;
     color: #94a3b8;
+    opacity: 1;
+    cursor: not-allowed;
 }
 
 [data-theme="light"] .cp-processing {

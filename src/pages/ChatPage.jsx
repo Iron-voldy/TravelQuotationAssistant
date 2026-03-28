@@ -328,6 +328,39 @@ const ChatPage = () => {
     const handleSend = async (text) => {
         const msg = (text || input).trim();
         if (!msg || sending) return;
+
+        // ── Client-side prompt validation ───────────────────────
+        // Block obvious random / gibberish inputs before hitting the API
+        const isGibberish = (() => {
+            if (msg.length < 4) return true;
+            // All same character (e.g. "aaaa", "1111")
+            if (/^(.)\1+$/.test(msg)) return true;
+            const words = msg.split(/\s+/).filter(Boolean);
+            // No actual word of length ≥ 2
+            const realWords = words.filter(w => /[a-zA-Z]{2,}/.test(w));
+            if (realWords.length === 0) return true;
+            // ≥ 80% of characters are non-letter (pure numbers/symbols/emojis)
+            const letters = (msg.match(/[a-zA-Z]/g) || []).length;
+            if (letters < msg.replace(/\s/g, '').length * 0.2) return true;
+            return false;
+        })();
+
+        if (isGibberish) {
+            setMessages(p => [...p,
+                { id: `err_${Date.now()}`, role: 'user', content: msg, created_at: new Date() },
+                {
+                    id: `valerr_${Date.now()}`,
+                    role: 'assistant',
+                    content: '⚠️ Please enter a valid travel request. For example: "Create Singapore trip/package for 3 nights for 3 pax"',
+                    created_at: new Date()
+                }
+            ]);
+            setInput('');
+            if (textareaRef.current) textareaRef.current.style.height = 'auto';
+            return;
+        }
+        // ────────────────────────────────────────────────────────
+
         setInput('');
         if (textareaRef.current) { textareaRef.current.style.height = 'auto'; }
         setSending(true);

@@ -19,6 +19,18 @@
     box-shadow: var(--shadow);
 }
 
+/* Active filter state — glowing ring */
+.stats-card--active {
+    transform: translateY(-4px);
+    border-color: currentColor !important;
+    box-shadow: 0 0 0 2px currentColor, 0 8px 24px rgba(0, 0, 0, 0.2) !important;
+}
+.stats-card--blue.stats-card--active  { box-shadow: 0 0 0 2px var(--accent-blue),  0 8px 24px rgba(59,130,246,0.25) !important; border-color: var(--accent-blue) !important; }
+.stats-card--amber.stats-card--active { box-shadow: 0 0 0 2px var(--warning),       0 8px 24px rgba(245,158,11,0.25) !important; border-color: var(--warning) !important; }
+.stats-card--green.stats-card--active { box-shadow: 0 0 0 2px var(--success),       0 8px 24px rgba(16,185,129,0.25) !important; border-color: var(--success) !important; }
+.stats-card--red.stats-card--active   { box-shadow: 0 0 0 2px var(--danger),        0 8px 24px rgba(239,68,68,0.25) !important;  border-color: var(--danger) !important; }
+.stats-card--active .stats-card-glow { opacity: 0.55; }
+
 /* Subtle glow orb */
 .stats-card-glow {
     position: absolute;
