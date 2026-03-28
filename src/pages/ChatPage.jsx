@@ -324,6 +324,23 @@ const ChatPage = () => {
 
     useEffect(() => { loadSessions(); }, [loadSessions]);
 
+    // Auto-select session from URL param ?session=<id>
+    // (navigated here from dashboard View button)
+    useEffect(() => {
+        if (!sessions.length) return;
+        const params = new URLSearchParams(currentLocation.search);
+        const sessionId = params.get('session');
+        if (!sessionId) return;
+        // If this session is already active, don't reload
+        if (activeSession && String(activeSession.id) === sessionId) return;
+        const target = sessions.find(s => String(s.id) === sessionId);
+        if (target) {
+            selectSession(target);
+            // Remove ?session from URL without adding to browser history
+            navigate('/chat', { replace: true });
+        }
+    }, [sessions, currentLocation.search]); // eslint-disable-line react-hooks/exhaustive-deps
+
     // Close sidebar on mobile when a session is selected
     const selectSession = async (s) => {
         setActiveSession(s);

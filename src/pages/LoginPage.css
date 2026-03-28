@@ -247,6 +247,24 @@
   }
 }
 
+/* xs: Ultra-small (<320px) */
+@media (max-width: 319px) {
+  .login-bg { padding: 10px 6px; }
+  .login-card {
+    padding: 18px 12px;
+    border-radius: 12px;
+    width: calc(100vw - 12px);
+  }
+  .login-brand { margin-bottom: 18px; }
+  .login-logo { width: 40px; height: 40px; font-size: 22px; border-radius: 10px; }
+  .login-title { font-size: 15px; }
+  .login-subtitle { font-size: 11px; }
+  .login-form { gap: 12px; }
+  .login-btn { padding: 10px; font-size: 12px; }
+  .login-footer { font-size: 11px; margin-top: 16px; }
+  .login-error { font-size: 11px; padding: 8px 10px; }
+}
+
 /* ══ LoginPage Light Theme ══ */
 [data-theme="light"] .login-bg {
     background: #f8fafc;

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import AppLayout from '../components/layout/AppLayout';
 import StatsCard from '../components/ui/StatsCard';
 import StatusBadge from '../components/ui/StatusBadge';
@@ -8,6 +9,7 @@ import { quotationAPI } from '../services/api';
 import './DashboardPage.css';
 
 const DashboardPage = () => {
+    const navigate = useNavigate();
     const [quotations, setQuotations] = useState([]);
     const [stats, setStats] = useState({ total: 0, pending: 0, accepted: 0, rejected: 0 });
     const [loading, setLoading] = useState(true);
@@ -91,7 +93,7 @@ const DashboardPage = () => {
                     <div className="filter-bar" style={{ margin: 0 }}>
                         <div className="search-box">
                             <span className="search-icon"><i className="fas fa-magnifying-glass" /></span>
-                            <input placeholder="Search quotation no..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} />
+                            <input placeholder="Search by quotation no. or description..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} />
                             {search && (
                                 <button className="search-clear-btn" onClick={() => { setSearch(''); setPage(1); }} title="Clear search">
                                     <i className="fas fa-xmark" />
@@ -135,9 +137,9 @@ const DashboardPage = () => {
                             <table className="data-table">
                                 <thead>
                                     <tr>
-                                        <th>#</th>
+                                        <th className="col-hide-xs">#</th>
                                         <th>Quotation No</th>
-                                        <th>Date</th>
+                                        <th className="col-hide-xs">Date</th>
                                         <th>Request Preview</th>
                                         <th>Status</th>
                                         <th>Actions</th>
@@ -146,22 +148,33 @@ const DashboardPage = () => {
                                 <tbody>
                                     {quotations.map((q, i) => (
                                         <tr key={q.id}>
-                                            <td style={{ color: 'var(--text-muted)' }}>{(page - 1) * LIMIT + i + 1}</td>
+                                            <td className="col-hide-xs" style={{ color: 'var(--text-muted)' }}>{(page - 1) * LIMIT + i + 1}</td>
                                             <td>
                                                 <span className="quotation-no">#{q.quotation_no}</span>
                                             </td>
-                                            <td style={{ color: 'var(--text-secondary)' }}>{fmt(q.created_at)}</td>
+                                            <td className="col-hide-xs" style={{ color: 'var(--text-secondary)' }}>{fmt(q.created_at)}</td>
                                             <td>
                                                 <span className="prompt-preview" title={q.prompt_text}>{q.prompt_text}</span>
                                             </td>
                                             <td><StatusBadge status={q.status} /></td>
                                             <td>
-                                                {q.status === 'pending' && (
-                                                    <div style={{ display: 'flex', gap: 8 }}>
-                                                        <button className="btn btn-success btn-sm" onClick={() => setConfirm({ open: true, id: q.id, action: 'accept' })}><i className="fas fa-check" /> Accept</button>
-                                                        <button className="btn btn-danger btn-sm" onClick={() => setConfirm({ open: true, id: q.id, action: 'reject' })}><i className="fas fa-xmark" /> Reject</button>
-                                                    </div>
-                                                )}
+                                                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                                                    {q.chat_session_id && (
+                                                        <button
+                                                            className="btn btn-view btn-sm"
+                                                            title="View in Chat"
+                                                            onClick={() => navigate(`/chat?session=${q.chat_session_id}`)}
+                                                        >
+                                                            <i className="fas fa-eye" /> View
+                                                        </button>
+                                                    )}
+                                                    {q.status === 'pending' && (
+                                                        <>
+                                                            <button className="btn btn-success btn-sm" onClick={() => setConfirm({ open: true, id: q.id, action: 'accept' })}><i className="fas fa-check" /> Accept</button>
+                                                            <button className="btn btn-danger btn-sm" onClick={() => setConfirm({ open: true, id: q.id, action: 'reject' })}><i className="fas fa-xmark" /> Reject</button>
+                                                        </>
+                                                    )}
+                                                </div>
                                             </td>
                                         </tr>
                                     ))}

@@ -823,3 +823,44 @@
 [data-theme="light"] .ulogin-agent-arrow {
     color: rgba(245, 158, 11, 0.4);
 }
+
+/* ── xl/2xl: Large screens — wider hero ─────── */
+@media (min-width: 1280px) {
+    .ulogin-hero { width: 58%; }
+    .ulogin-form-panel { width: 42%; }
+    .ulogin-hero-title { font-size: 48px; }
+    .ulogin-hero-content { padding: 64px 60px; }
+}
+
+/* ── lg: Mid tablets (768–900px): compact hero ─ */
+@media (min-width: 769px) and (max-width: 900px) {
+    .ulogin-hero { width: 48%; }
+    .ulogin-form-panel { width: 52%; padding: 28px; }
+    .ulogin-hero-title { font-size: 28px; }
+    .ulogin-hero-sub { font-size: 13px; }
+    .ulogin-hero-content { padding: 36px 28px; }
+    .ulogin-hero-stats { gap: 14px; padding: 12px 16px; }
+    .hero-stat-val { font-size: 18px; }
+    .ulogin-floating-card { display: none; }
+}
+
+/* ── xs: Ultra-small phones (<320px) ────────── */
+@media (max-width: 319px) {
+    .ulogin-wrap { min-height: 100vh; }
+    .ulogin-hero { display: none; }
+    .ulogin-form-panel { width: 100%; padding: 14px 10px; }
+    .ulogin-form-inner { max-width: 100%; }
+    .ulogin-brand { margin-bottom: 18px; gap: 8px; }
+    .ulogin-logo { width: 38px; height: 38px; font-size: 16px; border-radius: 10px; }
+    .ulogin-title { font-size: 15px; }
+    .ulogin-sub { font-size: 11px; }
+    .ulogin-form { gap: 12px; }
+    .ulogin-btn { padding: 11px; font-size: 13px; }
+    .ulogin-error { padding: 8px 12px; font-size: 11px; }
+    .ulogin-divider { margin: 14px 0; }
+    .ulogin-links p { font-size: 11px; }
+    .ulogin-agent-btn { padding: 9px 12px; }
+    .ulogin-agent-gif { width: 36px; height: 36px; }
+    .ulogin-agent-btn-title { font-size: 12px; }
+    .ulogin-agent-btn-sub { font-size: 10px; }
+}
