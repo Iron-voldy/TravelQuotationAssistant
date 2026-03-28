@@ -357,10 +357,10 @@ const ChatPage = () => {
     const newChat = () => {
         setActiveSession(null);
         setMessages([]);
-        // Don't cancel the in-flight request, but stop showing the loader
-        // in this new empty view — sending is scoped to the originating session
         setSending(false);
         setAlmostThere(false);
+        // On mobile close sidebar so the user sees the new-chat input area
+        if (window.innerWidth <= 767) setSidebarOpen(false);
     };
 
     const deleteSession = async (e, id) => {
