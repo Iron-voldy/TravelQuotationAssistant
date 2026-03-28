@@ -20,25 +20,33 @@ const TypingDots = () => (
 /* ─────────────────────────────────────────────
    Quotation action card (approve / reject / save)
 ───────────────────────────────────────────── */
-const QuotationCard = ({ quotationNo, chatMessageId, onAction }) => {
-    // pending → accept/reject buttons
-    // accepted → save button (saves to DB)
-    // saved → done message
-    // rejected → done message
-    const [status, setStatus] = useState('pending'); // pending | accepted | saved | rejected | loading | saving
-    const [confirm, setConfirm] = useState(null);    // 'accept' | 'reject'
+const QuotationCard = ({ quotationNo, chatMessageId, initialStatus, onStatusChange }) => {
+    // Derive the starting UI status from the persisted DB value.
+    // 'saved' is our UI-only state for an already-accepted+saved quotation.
+    const resolveInitial = (s) => {
+        if (s === 'accepted') return 'saved';   // already fully saved in DB
+        if (s === 'rejected') return 'rejected';
+        return 'pending';
+    };
+
+    const [status, setStatus] = useState(() => resolveInitial(initialStatus));
+    const [confirm, setConfirm] = useState(null); // 'accept' | 'reject'
+
+    const setAndNotify = (s) => {
+        setStatus(s);
+        onStatusChange && onStatusChange(s);
+    };
 
     const doAction = async (action) => {
         setStatus('loading');
         try {
             if (action === 'accept') {
-                // Just mark as accepted locally — not yet saved to DB
+                // Mark accepted locally — user still needs to click Save
                 setStatus('accepted');
-                onAction && onAction('accept');
             } else {
-                // Reject — no DB save needed, just update UI
-                setStatus('rejected');
-                onAction && onAction('reject');
+                // Reject — persist to DB (no email)
+                await quotationAPI.rejectFromChat(chatMessageId);
+                setAndNotify('rejected');
             }
         } catch (e) {
             setStatus('pending');
@@ -50,10 +58,9 @@ const QuotationCard = ({ quotationNo, chatMessageId, onAction }) => {
         setStatus('saving');
         try {
             await quotationAPI.saveFromChat(chatMessageId);
-            setStatus('saved');
-            onAction && onAction('saved');
+            setAndNotify('saved');
         } catch (e) {
-            setStatus('accepted'); // revert to accepted so user can retry
+            setStatus('accepted'); // revert so user can retry
             alert('Save failed: ' + e.message);
         }
     };
@@ -207,7 +214,7 @@ const FormatGuideCard = ({ recommendations, onSelect }) => (
 /* ─────────────────────────────────────────────
    Single message bubble
 ───────────────────────────────────────────── */
-const ChatMsg = ({ msg, recommendations, onSelectPrompt }) => {
+const ChatMsg = ({ msg, recommendations, onSelectPrompt, onStatusChange }) => {
     const isUser = msg.role === 'user';
     const fmt = d => new Date(d).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 
@@ -237,7 +244,8 @@ const ChatMsg = ({ msg, recommendations, onSelectPrompt }) => {
                     <QuotationCard
                         quotationNo={msg.quotation_no}
                         chatMessageId={msg.id}
-                        onAction={() => { }}
+                        initialStatus={msg.quotation_status || 'pending'}
+                        onStatusChange={onStatusChange}
                     />
                 )}
                 <div className={`cp-bubble cp-bubble--${isUser ? 'user' : 'ai'}`}>
@@ -552,6 +560,15 @@ const ChatPage = () => {
                                     key={m.id}
                                     msg={m}
                                     recommendations={aiRecsMap[m.id]}
+                                    onStatusChange={(newStatus) => {
+                                        // Map card UI status back to a DB-compatible status
+                                        const dbStatus = newStatus === 'saved' ? 'accepted' : newStatus;
+                                        setMessages(prev => prev.map(p =>
+                                            p.id === m.id
+                                                ? { ...p, quotation_status: dbStatus }
+                                                : p
+                                        ));
+                                    }}
                                     onSelectPrompt={(text) => {
                                         setInput(text);
                                         setTimeout(() => {

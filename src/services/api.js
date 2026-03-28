@@ -53,6 +53,7 @@ export const quotationAPI = {
   accept: (id) => fetch(`${API_URL}/quotations/${id}/accept`, { method: 'PATCH', headers: getHeaders() }).then(handleResponse),
   reject: (id) => fetch(`${API_URL}/quotations/${id}/reject`, { method: 'PATCH', headers: getHeaders() }).then(handleResponse),
   saveFromChat: (chatMessageId) => fetch(`${API_URL}/quotations/save`, { method: 'POST', headers: getHeaders(), body: JSON.stringify({ chatMessageId }) }).then(handleResponse),
+  rejectFromChat: (chatMessageId) => fetch(`${API_URL}/quotations/reject-from-chat`, { method: 'POST', headers: getHeaders(), body: JSON.stringify({ chatMessageId }) }).then(handleResponse),
 };
 
 export const adminAPI = {
