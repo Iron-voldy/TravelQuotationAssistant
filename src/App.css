@@ -731,6 +731,12 @@ body {
   color: var(--text-secondary);
   font-size: 13px;
   max-width: 300px;
+  cursor: help;
+}
+
+.prompt-preview:hover {
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
 }
 
 /* ════════════════ KEYFRAMES ════════════════ */

@@ -161,7 +161,7 @@ const AgentDashboardPage = () => {
                                             </td>
                                             <td style={{ color: 'var(--text-secondary)' }}>{fmt(q.created_at)}</td>
                                             <td>
-                                                <span className="prompt-preview">{q.prompt_text}</span>
+                                                <span className="prompt-preview" title={q.prompt_text}>{q.prompt_text}</span>
                                             </td>
                                             <td><StatusBadge status={q.status} /></td>
                                             <td>
