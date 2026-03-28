@@ -619,7 +619,7 @@
 }
 
 .cp-msg--user {
-    flex-direction: row-reverse;
+    justify-content: flex-end;
 }
 
 .cp-avatar {
@@ -1780,9 +1780,6 @@
     border-top-color: rgba(0, 0, 0, 0.06);
 }
 
-[data-theme="light"] .cp-sb-avatar {
-    /* keep gradient */
-}
 
 [data-theme="light"] .cp-sb-user-name,
 [data-theme="light"] .cp-sb-uname {

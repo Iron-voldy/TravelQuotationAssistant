@@ -233,7 +233,7 @@ const ChatMsg = ({ msg, recommendations, onSelectPrompt }) => {
 
             <div className="cp-msg-inner">
                 {/* Quotation card with approve / reject / save */}
-                {msg.is_success && msg.quotation_no && (
+                {!!(msg.is_success && msg.quotation_no) && (
                     <QuotationCard
                         quotationNo={msg.quotation_no}
                         chatMessageId={msg.id}
