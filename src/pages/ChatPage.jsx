@@ -670,7 +670,7 @@ const ChatPage = () => {
                                 e.target.style.height = Math.min(e.target.scrollHeight, 140) + 'px';
                             }}
                             onKeyDown={onKeyDown}
-                            placeholder="e.g., Create Singapore for 3 nights for 3 pax from 5th April (Shift+Enter for new line)"
+                            placeholder="e.g., Create a Singapore trip for 3 nights with 3 pax from April 5th. (Shift+Enter for new line)"
                             rows={1}
                             disabled={sending}
                         />
