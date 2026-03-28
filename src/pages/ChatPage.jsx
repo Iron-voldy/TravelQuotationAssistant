@@ -31,6 +31,14 @@ const QuotationCard = ({ quotationNo, chatMessageId, initialStatus, onStatusChan
 
     const [status, setStatus] = useState(() => resolveInitial(initialStatus));
     const [confirm, setConfirm] = useState(null); // 'accept' | 'reject'
+    const [copied, setCopied] = useState(false);
+
+    const copyQuotationNo = () => {
+        navigator.clipboard.writeText(quotationNo).then(() => {
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        });
+    };
 
     const setAndNotify = (s) => {
         setStatus(s);
@@ -79,7 +87,18 @@ const QuotationCard = ({ quotationNo, chatMessageId, initialStatus, onStatusChan
                 </div>
                 <div className={`cp-quot-badge cp-quot-badge--${status === 'saving' ? 'loading' : status === 'saved' ? 'accepted' : status}`}>
                     {status === 'accepted' && 'Accepted'}
-                    {status === 'saved' && 'Saved'}
+                    {status === 'saved' && (
+                        <>
+                            Saved
+                            <button
+                                className={`cp-quot-copy-btn${copied ? ' cp-quot-copy-btn--done' : ''}`}
+                                onClick={copyQuotationNo}
+                                title={copied ? 'Copied!' : 'Copy quotation number'}
+                            >
+                                <i className={copied ? 'fas fa-check' : 'fas fa-copy'} />
+                            </button>
+                        </>
+                    )}
                     {status === 'rejected' && 'Rejected'}
                     {status === 'pending' && 'Pending Review'}
                     {status === 'loading' && <><span className="cp-spin" /> Processing</>}
@@ -248,9 +267,12 @@ const ChatMsg = ({ msg, recommendations, onSelectPrompt, onStatusChange }) => {
                         onStatusChange={onStatusChange}
                     />
                 )}
-                <div className={`cp-bubble cp-bubble--${isUser ? 'user' : 'ai'}`}>
-                    {msg.content}
-                </div>
+                {/* Hide the assistant bubble text when a quotation card is shown — it's redundant */}
+                {!(msg.is_success && msg.quotation_no) && (
+                    <div className={`cp-bubble cp-bubble--${isUser ? 'user' : 'ai'}`}>
+                        {msg.content}
+                    </div>
+                )}
                 <span className="cp-time">{msg.created_at ? fmt(msg.created_at) : ''}</span>
             </div>
 

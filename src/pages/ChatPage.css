@@ -897,6 +897,33 @@
     color: rgba(148, 163, 184, 0.5);
 }
 
+/* Copy button inside Saved badge */
+.cp-quot-copy-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.12);
+    border: none;
+    border-radius: 5px;
+    color: inherit;
+    cursor: pointer;
+    font-size: 11px;
+    width: 20px;
+    height: 20px;
+    margin-left: 6px;
+    transition: background 0.18s, color 0.18s;
+    flex-shrink: 0;
+}
+
+.cp-quot-copy-btn:hover {
+    background: rgba(255, 255, 255, 0.24);
+}
+
+.cp-quot-copy-btn--done {
+    color: #34d399;
+    background: rgba(16, 185, 129, 0.2);
+}
+
 /* Action section */
 .cp-quot-actions {
     margin-top: 16px;
