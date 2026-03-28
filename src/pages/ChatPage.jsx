@@ -175,9 +175,9 @@ const FormatGuideCard = ({ recommendations, onSelect }) => (
                 );
                 const examples = Array.isArray(recommendations) && recommendations.length > 0
                     ? recommendations
-                    : ['Create Singapore for 3 nights for 3 pax',
-                       'Create Sri Lanka for 5 days for 2 adults and 2 children, travel starts March 12th',
-                       'Create Malaysia for 2 adults and 1 child traveling on 5th April 2026 with 4-star hotel'];
+                    : ['Create Singapore trip/package for 3 nights for 3 pax',
+                       'Create Sri Lanka trip/package for 5 days for 2 adults and 2 children, travel starts March 12th',
+                       'Create Malaysia trip/package for 2 adults and 1 child traveling on 5th April 2026 with a 4-star hotel'];
                 const label = Array.isArray(recommendations) && recommendations.length > 0
                     ? '✨ Try these optimized prompts (click to use):'
                     : 'Try one of these formats:';
@@ -255,10 +255,10 @@ const ChatMsg = ({ msg, recommendations, onSelectPrompt }) => {
    Main ChatPage
 ───────────────────────────────────────────── */
 const SUGGESTIONS = [
-    { icon: 'fa-map-location-dot', text: ' Create a trip to Singapore for 3 nights for 3 pax' },
-    { icon: 'fa-umbrella-beach', text: 'Create Sri Lanka for 5 days for 2 adults and 2 children, travel starts March 12th' },
-    { icon: 'fa-mountain', text: 'Create Malaysia for 2 adults and 1 child traveling on 5th April 2026 with 4-star hotel' },
-    { icon: 'fa-users', text: 'Create a vietnam for 2 nights Phu Quoc  for 10 adults from May 10 with 2 double and 2 triple rooms and give me private tours.' },
+    { icon: 'fa-map-location-dot', text: 'Create Singapore trip/package for 3 nights for 3 pax' },
+    { icon: 'fa-umbrella-beach', text: 'Create Sri Lanka trip/package for 5 days for 2 adults and 2 children, travel starts March 12th' },
+    { icon: 'fa-mountain', text: 'Create Malaysia trip/package for 2 adults and 1 child traveling on 5th April 2026 with a 4-star hotel' },
+    { icon: 'fa-users', text: 'Create Vietnam trip/package for 7 days for 4 pax from 1st May 2026' },
 ];
 
 const ChatPage = () => {
@@ -595,9 +595,6 @@ const ChatPage = () => {
                     )}
                     <div className="cp-input-card">
                         <div className="cp-input-toolbar">
-                            <button className="cp-toolbar-btn" onClick={newChat} title="New chat">
-                                <i className="fas fa-plus" />
-                            </button>
                         </div>
                         <textarea
                             ref={textareaRef}

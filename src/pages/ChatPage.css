@@ -118,6 +118,17 @@
     margin: 12px 6px 4px;
 }
 
+.cp-sidebar--closed .cp-sb-footer {
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 6px;
+}
+
+.cp-sidebar--closed .cp-sb-user {
+    justify-content: center;
+}
+
 /* Section label */
 .cp-sb-label {
     font-size: 10px;
@@ -1968,7 +1979,82 @@
 }
 
 [data-theme="light"] .cp-quot-label {
-    color: #94a3b8;
+    color: #64748b;
+}
+
+/* ── Badge (Pending Review / Accepted / Rejected / Loading) ── */
+[data-theme="light"] .cp-quot-badge--pending {
+    background: rgba(59, 130, 246, 0.12);
+    color: #1d4ed8;
+}
+
+[data-theme="light"] .cp-quot-badge--accepted {
+    background: rgba(16, 185, 129, 0.12);
+    color: #065f46;
+}
+
+[data-theme="light"] .cp-quot-badge--rejected {
+    background: rgba(239, 68, 68, 0.1);
+    color: #b91c1c;
+}
+
+[data-theme="light"] .cp-quot-badge--loading {
+    background: rgba(0, 0, 0, 0.06);
+    color: #475569;
+}
+
+/* ── Quotation number ── */
+[data-theme="light"] .cp-quot-card--pending .cp-quot-no {
+    color: #1d4ed8;
+}
+[data-theme="light"] .cp-quot-card--accepted .cp-quot-no {
+    color: #065f46;
+}
+[data-theme="light"] .cp-quot-card--rejected .cp-quot-no {
+    color: #b91c1c;
+}
+[data-theme="light"] .cp-quot-card--loading .cp-quot-no {
+    color: #475569;
+}
+
+/* ── Icon background ── */
+[data-theme="light"] .cp-quot-card--pending .cp-quot-icon {
+    background: rgba(59, 130, 246, 0.1);
+    color: #1d4ed8;
+}
+[data-theme="light"] .cp-quot-card--accepted .cp-quot-icon {
+    background: rgba(16, 185, 129, 0.1);
+    color: #065f46;
+}
+[data-theme="light"] .cp-quot-card--rejected .cp-quot-icon {
+    background: rgba(239, 68, 68, 0.08);
+    color: #b91c1c;
+}
+[data-theme="light"] .cp-quot-card--loading .cp-quot-icon {
+    background: rgba(0, 0, 0, 0.05);
+    color: #64748b;
+}
+
+/* ── Reject button ── */
+[data-theme="light"] .cp-quot-btn--reject {
+    background: rgba(239, 68, 68, 0.08);
+    border-color: rgba(239, 68, 68, 0.25);
+    color: #b91c1c;
+}
+[data-theme="light"] .cp-quot-btn--reject:hover {
+    background: rgba(239, 68, 68, 0.14);
+}
+
+/* ── Done messages ── */
+[data-theme="light"] .cp-quot-done--accept {
+    background: rgba(16, 185, 129, 0.07);
+    color: #065f46;
+    border-color: rgba(16, 185, 129, 0.2);
+}
+[data-theme="light"] .cp-quot-done--reject {
+    background: rgba(239, 68, 68, 0.06);
+    color: #b91c1c;
+    border-color: rgba(239, 68, 68, 0.18);
 }
 
 [data-theme="light"] .cp-quot-actions {
