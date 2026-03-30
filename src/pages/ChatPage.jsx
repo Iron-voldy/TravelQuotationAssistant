@@ -943,18 +943,6 @@ const ChatPage = () => {
                 <div className="cp-input-zone">
                     
                     <div className="cp-input-card">
-                        <div className="cp-input-toolbar">
-                            <button
-                                type="button"
-                                className={`cp-toolbar-btn cp-toolbar-btn--voice ${voiceModalOpen ? 'active' : ''}`}
-                                onClick={() => setVoiceModalOpen(true)}
-                                title="Voice search"
-                                aria-label="Open voice search"
-                                disabled={sending}
-                            >
-                                <i className="fas fa-microphone" />
-                            </button>
-                        </div>
                         <textarea
                             ref={textareaRef}
                             className="cp-textarea"
