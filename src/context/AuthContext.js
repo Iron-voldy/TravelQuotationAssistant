@@ -39,13 +39,14 @@ export const AuthProvider = ({ children }) => {
   const scheduleRefresh = useCallback((currentToken) => {
     clearRefreshTimer();
 
-    // Calculate delay from actual JWT expiry, refreshing 5 minutes before it dies.
-    // Fall back to 23-hour fixed delay if the token can't be decoded.
+
+    // Calculate delay from actual JWT expiry, refreshing 10 minutes before it dies.
+    // Fall back to 50-minute fixed delay if the token can't be decoded.
     const expiresAt = getTokenExpiryMs(currentToken);
-    const FIVE_MINUTES = 5 * 60 * 1000;
+    const TEN_MINUTES = 10 * 60 * 1000;
     const refreshDelay = expiresAt
-      ? Math.max(expiresAt - Date.now() - FIVE_MINUTES, 0)
-      : 23 * 60 * 60 * 1000;
+      ? Math.max(expiresAt - Date.now() - TEN_MINUTES, 0)
+      : 50 * 60 * 1000;
 
     console.log(`[AUTH] Token refresh scheduled in ${Math.round(refreshDelay / 1000)}s`);
 

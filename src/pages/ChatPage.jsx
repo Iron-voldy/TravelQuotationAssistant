@@ -101,7 +101,7 @@ const QuotationCard = ({ quotationNo, chatMessageId, initialStatus, onStatusChan
                         </>
                     )}
                     {status === 'rejected' && 'Rejected'}
-                    {status === 'pending' && 'Pending Review'}
+                    {status === 'pending' && 'Pending'}
                     {status === 'loading' && <><span className="cp-spin" /> Processing</>}
                     {status === 'saving' && <><span className="cp-spin" /> Saving…</>}
                 </div>
@@ -292,6 +292,61 @@ const SUGGESTIONS = [
     { icon: 'fa-users', text: 'Create Vietnam trip/package for 7 days for 4 pax from 1st May 2026' },
 ];
 
+const getSpeechRecognition = () => {
+    if (typeof window === 'undefined') return null;
+    return window.SpeechRecognition || window.webkitSpeechRecognition || null;
+};
+
+const buildVoiceErrorMessage = (errorCode) => {
+    switch (errorCode) {
+        case 'not-allowed':
+        case 'service-not-allowed':
+            return 'Microphone access was blocked. Please allow microphone permission and try again.';
+        case 'audio-capture':
+            return 'No microphone was found. Please connect a microphone and try again.';
+        case 'network':
+            return 'Speech recognition needs a stable connection right now. Please try again.';
+        case 'no-speech':
+            return 'We could not hear any speech. Please try again.';
+        default:
+            return 'Voice search is not available right now. Please try again.';
+    }
+};
+
+const validateTravelPrompt = (rawText) => {
+    const msg = (rawText || '').trim();
+    if (!msg) return { isValid: false, reason: 'empty' };
+
+    const compact = msg.replace(/\s+/g, ' ');
+    const words = compact.split(' ').filter(Boolean);
+    const letters = (compact.match(/[a-z]/gi) || []).length;
+    const nonSpaceChars = compact.replace(/\s/g, '').length;
+    const letterRatio = nonSpaceChars ? letters / nonSpaceChars : 0;
+
+    // Hard reject for obvious keyboard smash / meaningless patterns.
+    if (compact.length < 8) return { isValid: false, reason: 'too_short' };
+    if (/^(.)\1+$/i.test(compact.replace(/\s/g, ''))) return { isValid: false, reason: 'repeated_chars' };
+    if (/\b[bcdfghjklmnpqrstvwxyz]{7,}\b/i.test(compact)) return { isValid: false, reason: 'consonant_smash' };
+    if (/\d{4,}[a-z]{4,}|[a-z]{4,}\d{4,}/i.test(compact) && words.length <= 2) {
+        return { isValid: false, reason: 'alnum_smash' };
+    }
+    if (letterRatio < 0.35) return { isValid: false, reason: 'low_letters' };
+
+    const hasTravelKeyword = /\b(trip|travel|package|tour|holiday|vacation|itinerary|quotation|quote|hotel|flight|visa|sightseeing|destination)\b/i.test(compact);
+    const hasDuration = /\b\d+\s*(day|days|night|nights|week|weeks)\b/i.test(compact);
+    const hasTravellers = /\b\d+\s*(pax|people|persons?|travellers?|adults?|children|kids|child)\b/i.test(compact)
+        || /\b(adults?|children|kids|child)\b/i.test(compact);
+    const hasDate = /\b(\d{1,2}[/-]\d{1,2}([/-]\d{2,4})?|\d{1,2}(st|nd|rd|th)?\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec|january|february|march|april|june|july|august|september|october|november|december)|from\s+\d{4}|travel\s+starts)\b/i.test(compact);
+    const hasDestinationCue = /\b(to|for|in)\s+[a-z]{3,}\b/i.test(compact);
+
+    const travelSignals = [hasTravelKeyword, hasDuration, hasTravellers, hasDate, hasDestinationCue].filter(Boolean).length;
+
+    // Require meaningful travel intent so random text doesn't trigger quotation flow.
+    if (travelSignals >= 2) return { isValid: true, reason: null };
+    if (hasTravelKeyword && words.length >= 4) return { isValid: true, reason: null };
+    return { isValid: false, reason: 'missing_travel_details' };
+};
+
 const ChatPage = () => {
     const { user, logout, theme, toggleTheme } = useAuth();
     const navigate = useNavigate();
@@ -307,13 +362,43 @@ const ChatPage = () => {
     const [deleteConfirm, setDeleteConfirm] = useState(null); // session id pending delete
     // Map of guideId -> recommendations array (null=loading, []=fallback, [...]=AI recs)
     const [aiRecsMap, setAiRecsMap] = useState({});
+    const [voiceModalOpen, setVoiceModalOpen] = useState(false);
+    const [voiceListening, setVoiceListening] = useState(false);
+    const [voiceTranscript, setVoiceTranscript] = useState('');
+    const [voiceInterim, setVoiceInterim] = useState('');
+    const [voiceError, setVoiceError] = useState('');
 
     const endRef = useRef(null);
     const textareaRef = useRef(null);
     // Tracks which session the current in-flight send belongs to
     const sendingSessionRef = useRef(null);
+    const recognitionRef = useRef(null);
+    const voiceTranscriptRef = useRef('');
+    const voiceInterimRef = useRef('');
+    const closingVoiceModalRef = useRef(false);
+    const voiceModalOpenRef = useRef(false);
+    const startVoiceRecognitionRef = useRef(null);
 
     useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, sending, almostThere]);
+
+    useEffect(() => {
+        if (!voiceModalOpen) return undefined;
+        const previousBodyOverflow = document.body.style.overflow;
+        const previousHtmlOverflow = document.documentElement.style.overflow;
+        document.body.style.overflow = 'hidden';
+        document.documentElement.style.overflow = 'hidden';
+
+        return () => {
+            document.body.style.overflow = previousBodyOverflow;
+            document.documentElement.style.overflow = previousHtmlOverflow;
+        };
+    }, [voiceModalOpen]);
+
+    // Keep ref in sync so recognition callbacks can read latest value without stale closure
+    useEffect(() => { voiceModalOpenRef.current = voiceModalOpen; }, [voiceModalOpen]);
+
+    // Keep ref pointing to latest startVoiceRecognition for auto-restart inside onend
+    useEffect(() => { startVoiceRecognitionRef.current = startVoiceRecognition; });
 
     const loadSessions = useCallback(async () => {
         try {
@@ -378,33 +463,180 @@ const ChatPage = () => {
         } catch { }
     };
 
+    const resizeTextarea = useCallback(() => {
+        requestAnimationFrame(() => {
+            if (!textareaRef.current) return;
+            textareaRef.current.style.height = 'auto';
+            textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 140) + 'px';
+        });
+    }, []);
+
+    const getCombinedVoiceTranscript = useCallback(() => (
+        `${voiceTranscriptRef.current} ${voiceInterimRef.current}`.replace(/\s+/g, ' ').trim()
+    ), []);
+
+    const stopRecognition = useCallback((mode = 'abort') => {
+        const recognition = recognitionRef.current;
+        if (!recognition) return;
+
+        recognition.onstart = null;
+        recognition.onresult = null;
+        recognition.onerror = null;
+        recognition.onend = null;
+        recognitionRef.current = null;
+
+        try {
+            if (mode === 'stop') recognition.stop();
+            else recognition.abort();
+        } catch { }
+    }, []);
+
+    const applyVoiceTranscript = useCallback((spokenText) => {
+        const cleanText = spokenText.trim();
+        if (!cleanText) return;
+
+        setInput(prev => {
+            if (!prev.trim()) return cleanText;
+            return /\s$/.test(prev) ? `${prev}${cleanText}` : `${prev} ${cleanText}`;
+        });
+
+        setTimeout(() => {
+            if (textareaRef.current) textareaRef.current.focus();
+            resizeTextarea();
+        }, 0);
+    }, [resizeTextarea]);
+
+    const closeVoiceModal = useCallback(({ shouldApply = false, stopMode = 'abort' } = {}) => {
+        const transcript = getCombinedVoiceTranscript();
+        closingVoiceModalRef.current = true;
+        stopRecognition(stopMode);
+        setVoiceModalOpen(false);
+        setVoiceListening(false);
+        setVoiceTranscript('');
+        setVoiceInterim('');
+        setVoiceError('');
+        voiceTranscriptRef.current = '';
+        voiceInterimRef.current = '';
+
+        if (shouldApply && transcript) {
+            applyVoiceTranscript(transcript);
+        }
+    }, [applyVoiceTranscript, getCombinedVoiceTranscript, stopRecognition]);
+
+    // isRestart = true skips resetting the accumulated transcript so it is preserved
+    const startVoiceRecognition = useCallback((isRestart = false) => {
+        const SpeechRecognition = getSpeechRecognition();
+        if (!SpeechRecognition) {
+            setVoiceListening(false);
+            setVoiceError('Voice search is not supported in this browser. Please use Google Chrome or Microsoft Edge.');
+            return;
+        }
+
+        closingVoiceModalRef.current = false;
+        stopRecognition('abort');
+
+        // Only wipe the transcript on a fresh open, not on auto-restart after silence
+        if (!isRestart) {
+            voiceTranscriptRef.current = '';
+            voiceInterimRef.current = '';
+            setVoiceTranscript('');
+        }
+        voiceInterimRef.current = '';
+        setVoiceInterim('');
+        setVoiceError('');
+
+        const recognition = new SpeechRecognition();
+        recognition.lang = 'en-US';
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.maxAlternatives = 1;
+
+        recognition.onstart = () => {
+            setVoiceListening(true);
+            setVoiceError('');
+        };
+
+        recognition.onresult = (event) => {
+            let finalText = '';
+            let interimText = '';
+            for (let i = event.resultIndex; i < event.results.length; i += 1) {
+                const t = event.results[i][0]?.transcript || '';
+                if (event.results[i].isFinal) finalText += t;
+                else interimText += t;
+            }
+            if (finalText) {
+                const next = `${voiceTranscriptRef.current} ${finalText}`.replace(/\s+/g, ' ').trim();
+                voiceTranscriptRef.current = next;
+                setVoiceTranscript(next);
+            }
+            voiceInterimRef.current = interimText.trim();
+            setVoiceInterim(interimText.trim());
+        };
+
+        recognition.onerror = (event) => {
+            // 'no-speech' is not a real error — browser just timed out waiting.
+            // onend will fire next and we auto-restart there.
+            if (event.error === 'no-speech') return;
+            setVoiceListening(false);
+            setVoiceError(buildVoiceErrorMessage(event.error));
+        };
+
+        recognition.onend = () => {
+            recognitionRef.current = null;
+            if (closingVoiceModalRef.current) {
+                closingVoiceModalRef.current = false;
+                return;
+            }
+            setVoiceListening(false);
+            const transcript = getCombinedVoiceTranscript();
+            if (transcript) {
+                // User spoke something — apply it
+                closeVoiceModal({ shouldApply: true, stopMode: 'abort' });
+            } else if (voiceModalOpenRef.current) {
+                // Modal still open but nothing captured yet — auto-restart silently
+                // Use the ref so we always call the latest version without stale closure
+                setTimeout(() => {
+                    if (voiceModalOpenRef.current && !closingVoiceModalRef.current) {
+                        startVoiceRecognitionRef.current?.(true);
+                    }
+                }, 350);
+            }
+        };
+
+        recognitionRef.current = recognition;
+        try {
+            recognition.start();
+        } catch {
+            setVoiceListening(false);
+            setVoiceError('Could not access the microphone. Please check permissions and try again.');
+        }
+    }, [closeVoiceModal, getCombinedVoiceTranscript, stopRecognition]);
+
+    useEffect(() => {
+        if (!voiceModalOpen) return undefined;
+        startVoiceRecognition();
+
+        return () => {
+            closingVoiceModalRef.current = true;
+            stopRecognition('abort');
+            setVoiceListening(false);
+        };
+    }, [voiceModalOpen, startVoiceRecognition, stopRecognition]);
+
     const handleSend = async (text) => {
         const msg = (text || input).trim();
         if (!msg || sending) return;
 
-        // ── Client-side prompt validation ───────────────────────
-        // Block obvious random / gibberish inputs before hitting the API
-        const isGibberish = (() => {
-            if (msg.length < 4) return true;
-            // All same character (e.g. "aaaa", "1111")
-            if (/^(.)\1+$/.test(msg)) return true;
-            const words = msg.split(/\s+/).filter(Boolean);
-            // No actual word of length ≥ 2
-            const realWords = words.filter(w => /[a-zA-Z]{2,}/.test(w));
-            if (realWords.length === 0) return true;
-            // ≥ 80% of characters are non-letter (pure numbers/symbols/emojis)
-            const letters = (msg.match(/[a-zA-Z]/g) || []).length;
-            if (letters < msg.replace(/\s/g, '').length * 0.2) return true;
-            return false;
-        })();
-
-        if (isGibberish) {
+        // ── Strong client-side prompt validation ────────────────
+        // Prevent keyboard smash / random text from reaching quotation APIs.
+        const validation = validateTravelPrompt(msg);
+        if (!validation.isValid) {
             setMessages(p => [...p,
                 { id: `err_${Date.now()}`, role: 'user', content: msg, created_at: new Date() },
                 {
                     id: `valerr_${Date.now()}`,
                     role: 'assistant',
-                    content: '⚠️ Please enter a valid travel request. For example: "Create Singapore trip/package for 3 nights for 3 pax"',
+                    content: 'Please enter a valid travel request with destination, duration, and travellers. Example: "Create Singapore trip/package for 3 nights for 3 pax".',
                     created_at: new Date()
                 }
             ]);
@@ -524,7 +756,7 @@ const ChatPage = () => {
     const sessionTitle = sessions.find(s => s.id === activeSession?.id)?.title || 'TravelAI';
 
     return (
-        <div className="cp-root">
+        <div className={`cp-root ${voiceModalOpen ? 'cp-root--voice-open' : ''}`}>
             {/* Delete chat confirmation modal */}
             <ConfirmModal
                 isOpen={!!deleteConfirm}
@@ -631,7 +863,7 @@ const ChatPage = () => {
 
                 {/* Messages / Welcome */}
                 <div className="cp-messages">
-                    {!activeSession ? (
+                    {!activeSession && messages.length === 0 ? (
                         /* Welcome screen */
                         <div className="cp-welcome">
                             <div className="cp-welcome-rings">
@@ -709,17 +941,19 @@ const ChatPage = () => {
 
                 {/* Input bar */}
                 <div className="cp-input-zone">
-                    {sending && (
-                        <div className="cp-processing">
-                            <i className="fas fa-circle-notch fa-spin" />
-                            {almostThere
-                                ? '✨ Almost there... Please wait while we prepare your quotation details.'
-                                : 'Processing your request — this may take 1–3 minutes…'
-                            }
-                        </div>
-                    )}
+                    
                     <div className="cp-input-card">
                         <div className="cp-input-toolbar">
+                            <button
+                                type="button"
+                                className={`cp-toolbar-btn cp-toolbar-btn--voice ${voiceModalOpen ? 'active' : ''}`}
+                                onClick={() => setVoiceModalOpen(true)}
+                                title="Voice search"
+                                aria-label="Open voice search"
+                                disabled={sending}
+                            >
+                                <i className="fas fa-microphone" />
+                            </button>
                         </div>
                         <textarea
                             ref={textareaRef}
@@ -753,6 +987,89 @@ const ChatPage = () => {
                     </div>
                 </div>
             </div>
+
+            {voiceModalOpen && (
+                <div className="cp-voice-overlay" onClick={() => closeVoiceModal()}>
+                    <div className="cp-voice-modal" onClick={e => e.stopPropagation()}>
+                        {/* Blue arc glow rendered behind all content */}
+                        <div className="cp-voice-glow-arc" aria-hidden="true" />
+
+                        <button
+                            type="button"
+                            className="cp-voice-close"
+                            onClick={() => closeVoiceModal()}
+                            aria-label="Close voice search"
+                        >
+                            <i className="fas fa-xmark" />
+                        </button>
+
+                        <div className="cp-voice-chip">
+                            <i className="fas fa-microphone" />
+                            AI Voice Search
+                        </div>
+
+                        <div className="cp-voice-panel">
+                            <div className="cp-voice-transcript">
+                                {voiceTranscript || voiceInterim ? (
+                                    <>
+                                        <span className="cp-voice-text-final">{voiceTranscript}</span>
+                                        {voiceTranscript && voiceInterim ? ' ' : ''}
+                                        {voiceInterim && <span className="cp-voice-text-interim">{voiceInterim}</span>}
+                                    </>
+                                ) : (
+                                    <span className="cp-voice-placeholder">
+                                        {voiceListening
+                                            ? 'Start speaking. Your words will appear here live.'
+                                            : 'Preparing your microphone...'}
+                                    </span>
+                                )}
+                            </div>
+
+                            <div className={`cp-voice-wave${voiceListening ? ' is-active' : ''}`}>
+                                {Array.from({ length: 20 }).map((_, i) => (
+                                    <span key={i} style={{ '--wi': i }} />
+                                ))}
+                            </div>
+
+                            <button
+                                type="button"
+                                className={`cp-voice-mic-btn ${voiceListening ? 'is-listening' : ''}`}
+                                onClick={() => {
+                                    if (voiceListening) closeVoiceModal({ shouldApply: true, stopMode: 'stop' });
+                                    else startVoiceRecognition();
+                                }}
+                                aria-label={voiceListening ? 'Stop voice search' : 'Start voice search'}
+                            >
+                                <i className={`fas ${voiceListening ? 'fa-stop' : 'fa-microphone'}`} />
+                            </button>
+                        </div>
+
+                        <p className="cp-voice-status">
+                            {voiceError || (voiceListening ? 'Listening now. Tap the button again when you are done.' : 'Tap the microphone to try again.')}
+                        </p>
+
+                        <div className="cp-voice-actions">
+                            <button type="button" className="cp-voice-btn cp-voice-btn--ghost" onClick={() => closeVoiceModal()}>
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                className="cp-voice-btn cp-voice-btn--primary"
+                                onClick={() => {
+                                    if (voiceListening) closeVoiceModal({ shouldApply: true, stopMode: 'stop' });
+                                    else {
+                                        const transcript = getCombinedVoiceTranscript();
+                                        if (transcript) closeVoiceModal({ shouldApply: true });
+                                        else startVoiceRecognition();
+                                    }
+                                }}
+                            >
+                                {voiceListening ? 'Use text' : (voiceTranscript || voiceInterim ? 'Add to field' : 'Retry')}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
