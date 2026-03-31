@@ -1,3 +1,5 @@
+import { clearSession, getStoredLoginPath, parseStoredUser, persistSession } from './session';
+
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
 // Track if a refresh is in progress to avoid multiple simultaneous refresh attempts
@@ -10,6 +12,23 @@ const getHeaders = () => {
     'Content-Type': 'application/json',
     ...(token && { Authorization: `Bearer ${token}` })
   };
+};
+
+const redirectToLogin = () => {
+  const redirectPath = getStoredLoginPath();
+  clearSession();
+  window.location.href = redirectPath;
+};
+
+const parseResponseBody = async (res) => {
+  const text = await res.text();
+  if (!text) return {};
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { message: text };
+  }
 };
 
 const attemptTokenRefresh = async () => {
@@ -33,11 +52,13 @@ const attemptTokenRefresh = async () => {
       });
 
       if (res.ok) {
-        const data = await res.json();
-        localStorage.setItem('token', data.token);
-        if (data.appleAccessToken) {
-          localStorage.setItem('appleAccessToken', data.appleAccessToken);
-        }
+        const data = await parseResponseBody(res);
+        persistSession({
+          token: data.token,
+          user: parseStoredUser(),
+          appleAccessToken: data.appleAccessToken || localStorage.getItem('appleAccessToken'),
+          loginPath: getStoredLoginPath()
+        });
         console.log('[API] Token refreshed successfully');
         return true;
       } else {
@@ -56,7 +77,7 @@ const attemptTokenRefresh = async () => {
 };
 
 const handleResponse = async (res) => {
-  const data = await res.json();
+  const data = await parseResponseBody(res);
   if (!res.ok) {
     if (res.status === 401) {
       // Token expired or invalid — attempt refresh once
@@ -66,10 +87,7 @@ const handleResponse = async (res) => {
       if (!refreshSucceeded) {
         // Refresh failed or no token available — clear auth and redirect to login
         console.log('[API] Token refresh failed or no token, logging out');
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        localStorage.removeItem('appleAccessToken');
-        window.location.href = '/login';
+        redirectToLogin();
         throw new Error('Session expired. Please log in again.');
       }
       // If refresh succeeded, the caller should retry the original request with new token

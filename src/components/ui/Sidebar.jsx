@@ -12,7 +12,7 @@ const CloudLayer = () => (
 );
 
 const Sidebar = () => {
-    const { user, isAdmin, isAgent, logout, theme, toggleTheme } = useAuth();
+    const { user, isAdmin, isAgent, loginPath, logout, theme, toggleTheme } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
     const [mobileOpen, setMobileOpen] = useState(false);
@@ -34,9 +34,8 @@ const Sidebar = () => {
     }, []);
 
     const handleLogout = () => { 
-        const wasAgent = isAgent;
         logout(); 
-        navigate(wasAgent ? '/agent-login' : '/login'); 
+        navigate(loginPath, { replace: true });
     };
     const initials = user?.name?.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || '?';
 

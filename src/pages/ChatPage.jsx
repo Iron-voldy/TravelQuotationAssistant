@@ -348,7 +348,7 @@ const validateTravelPrompt = (rawText) => {
 };
 
 const ChatPage = () => {
-    const { user, logout, theme, toggleTheme } = useAuth();
+    const { user, loginPath, logout, theme, toggleTheme } = useAuth();
     const navigate = useNavigate();
     const currentLocation = useLocation();
     const [sessions, setSessions] = useState([]);
@@ -743,7 +743,7 @@ const ChatPage = () => {
         if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
     };
 
-    const handleLogout = () => { logout(); navigate('/login', { replace: true }); };
+    const handleLogout = () => { logout(); navigate(loginPath, { replace: true }); };
 
     const fmtDate = d => {
         const date = new Date(d);

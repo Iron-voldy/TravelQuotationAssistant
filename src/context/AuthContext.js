@@ -1,4 +1,5 @@
 import React, { createContext, useState, useContext, useEffect, useCallback, useRef } from 'react'; // eslint-disable-line react-hooks/exhaustive-deps
+import { clearSession, getLoginPathForUser, getStoredLoginPath, parseStoredUser, persistSession } from '../services/session';
 
 const AuthContext = createContext(null);
 
@@ -30,6 +31,22 @@ export const AuthProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
   const refreshTimerRef = useRef(null);
+
+  const clearClientAuthState = useCallback(() => {
+    clearRefreshTimer();
+    clearSession();
+    setToken(null);
+    setUser(null);
+    setIsAuthenticated(false);
+    setTheme('dark');
+    applyTheme('dark');
+  }, []);
+
+  const handleExpiredSession = useCallback(() => {
+    const redirectPath = getStoredLoginPath();
+    clearClientAuthState();
+    window.location.href = redirectPath;
+  }, [clearClientAuthState]);
 
   const clearRefreshTimer = () => {
     if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
@@ -74,27 +91,20 @@ export const AuthProvider = ({ children }) => {
         if (res.ok) {
           const data = await res.json();
           console.log('[AUTH] Token refreshed successfully');
-          localStorage.setItem('token', data.token);
+          persistSession({
+            token: data.token,
+            user: parseStoredUser() || user,
+            appleAccessToken: data.appleAccessToken || localStorage.getItem('appleAccessToken'),
+            loginPath: getStoredLoginPath()
+          });
           setToken(data.token);
-          // If server returned a refreshed Apple token (for agents), persist it
-          if (data.appleAccessToken) {
-            console.log('[AUTH] Apple token refreshed for agent');
-            localStorage.setItem('appleAccessToken', data.appleAccessToken);
-          }
           // Schedule the next refresh with the new token
           scheduleRefresh(data.token);
         } else {
           const errorData = await res.json().catch(() => ({}));
           console.warn('[AUTH] Token refresh failed with status:', res.status, errorData);
-          
-          // If refresh failed, force logout and redirect to login
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-          localStorage.removeItem('appleAccessToken');
-          setToken(null);
-          setUser(null);
-          setIsAuthenticated(false);
-          window.location.href = '/login';
+
+          handleExpiredSession();
         }
       } catch (e) {
         console.error('[AUTH] Token refresh error:', e.message);
@@ -113,19 +123,40 @@ export const AuthProvider = ({ children }) => {
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const applySuccessfulAuth = useCallback((data, options = {}) => {
+    const nextUser = data.user;
+    const nextLoginPath = options.loginPath || getLoginPathForUser(nextUser, { isAgent: !!nextUser?.isAgent });
+
+    persistSession({
+      token: data.token,
+      user: nextUser,
+      appleAccessToken: data.appleAccessToken || null,
+      loginPath: nextLoginPath
+    });
+
+    setToken(data.token);
+    setUser(nextUser);
+    setIsAuthenticated(true);
+    scheduleRefresh(data.token);
+
+    const nextTheme = nextUser?.theme_preference || 'dark';
+    setTheme(nextTheme);
+    applyTheme(nextTheme);
+
+    return nextLoginPath;
+  }, [scheduleRefresh]);
+
   useEffect(() => {
     const storedToken = localStorage.getItem('token');
     const storedUser = localStorage.getItem('user');
 
-    if (storedToken && storedUser) {
+      if (storedToken && storedUser) {
       try {
         // Reject outright if the token is already past its expiry time
         const expiresAt = getTokenExpiryMs(storedToken);
         if (expiresAt && Date.now() > expiresAt) {
           console.warn('[AUTH] Stored token is expired on startup. Clearing session.');
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-          localStorage.removeItem('appleAccessToken');
+          clearSession();
           applyTheme(localStorage.getItem('theme') || 'dark');
           setIsLoading(false);
           return;
@@ -141,8 +172,7 @@ export const AuthProvider = ({ children }) => {
         setTheme(savedTheme);
         applyTheme(savedTheme);
       } catch (e) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+        clearSession();
       }
     } else {
       // Not logged in — apply localStorage theme or default
@@ -162,19 +192,7 @@ export const AuthProvider = ({ children }) => {
 
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Login failed');
-
-    localStorage.setItem('token', data.token);
-    localStorage.setItem('user', JSON.stringify(data.user));
-    setToken(data.token);
-    setUser(data.user);
-    setIsAuthenticated(true);
-    scheduleRefresh(data.token);
-
-    // Apply theme from server
-    const t = data.user.theme_preference || 'dark';
-    setTheme(t);
-    applyTheme(t);
-
+    applySuccessfulAuth(data);
     return data;
   };
 
@@ -187,22 +205,7 @@ export const AuthProvider = ({ children }) => {
 
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Agent login failed');
-
-    localStorage.setItem('token', data.token);
-    localStorage.setItem('user', JSON.stringify(data.user));
-    if (data.appleAccessToken) {
-      localStorage.setItem('appleAccessToken', data.appleAccessToken);
-    }
-    setToken(data.token);
-    setUser(data.user);
-    setIsAuthenticated(true);
-    scheduleRefresh(data.token);
-
-    // Apply theme from server
-    const t = data.user.theme_preference || 'dark';
-    setTheme(t);
-    applyTheme(t);
-
+    applySuccessfulAuth(data, { loginPath: '/agent-login' });
     return data;
   };
 
@@ -215,33 +218,48 @@ export const AuthProvider = ({ children }) => {
 
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Registration failed');
-
-    localStorage.setItem('token', data.token);
-    localStorage.setItem('user', JSON.stringify(data.user));
-    setToken(data.token);
-    setUser(data.user);
-    setIsAuthenticated(true);
-    scheduleRefresh(data.token);
-
-    const t = data.user.theme_preference || 'dark';
-    setTheme(t);
-    applyTheme(t);
-
+    applySuccessfulAuth(data);
     return data;
   };
 
+  const refreshAuthToken = useCallback(async (tokenOverride) => {
+    const currentToken = tokenOverride || localStorage.getItem('token');
+    if (!currentToken) {
+      throw new Error('No token available for refresh');
+    }
+
+    const res = await fetch(`${API_URL}/auth/refresh`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${currentToken}` }
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(data.error || 'Token refresh failed');
+    }
+
+    persistSession({
+      token: data.token,
+      user: parseStoredUser() || user,
+      appleAccessToken: data.appleAccessToken || localStorage.getItem('appleAccessToken'),
+      loginPath: getStoredLoginPath()
+    });
+    setToken(data.token);
+    scheduleRefresh(data.token);
+    return data;
+  }, [scheduleRefresh, user]);
+
   const logout = () => {
-    clearRefreshTimer();
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    localStorage.removeItem('appleAccessToken');
+    const currentToken = token || localStorage.getItem('token');
+    if (currentToken) {
+      fetch(`${API_URL}/auth/logout`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${currentToken}` }
+      }).catch(() => {});
+    }
+
+    clearClientAuthState();
     console.log('[AUTH] Logged out. Cleared token, user, appleAccessToken');
-    setToken(null);
-    setUser(null);
-    setIsAuthenticated(false);
-    // Reset to dark on logout
-    setTheme('dark');
-    applyTheme('dark');
   };
 
   const toggleTheme = async () => {
@@ -268,11 +286,12 @@ export const AuthProvider = ({ children }) => {
 
   const isAdmin = user?.role === 'admin';
   const isAgent = !!user?.isAgent;
+  const loginPath = getLoginPathForUser(user, { isAgent });
 
   console.log('[AUTH CONTEXT] User:', user?.email, '| isAgent:', isAgent, '| isAdmin:', isAdmin);
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, user, token, isLoading, isAdmin, isAgent, theme, login, agentLogin, register, logout, toggleTheme }}>
+    <AuthContext.Provider value={{ isAuthenticated, user, token, isLoading, isAdmin, isAgent, theme, loginPath, login, agentLogin, register, logout, refreshAuthToken, toggleTheme }}>
       {children}
     </AuthContext.Provider>
   );

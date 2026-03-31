@@ -6,7 +6,7 @@ import { getOptimizedPrompts } from '../services/promptOptimizer';
 import './TravelQuotationPage.css';
 
 const TravelQuotationPage = () => {
-  const { user, token, sessionId, logout } = useAuth(); // Get token and stable sessionId
+  const { user, token, sessionId, loginPath, logout } = useAuth(); // Get token and stable sessionId
   const navigate = useNavigate();
 
   const [currentChatId, setCurrentChatId] = useState(null);
@@ -534,7 +534,7 @@ const TravelQuotationPage = () => {
   const handleLogout = () => {
     if (window.confirm('Are you sure you want to logout?')) {
       logout();
-      navigate('/login');
+      navigate(loginPath, { replace: true });
     }
   };
 
