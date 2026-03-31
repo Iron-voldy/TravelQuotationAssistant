@@ -92,8 +92,8 @@ const AdminQuotations = () => {
                                                 <td style={{ color: 'var(--text-muted)' }}>{(page - 1) * LIMIT + i + 1}</td>
                                                 <td><span className="quotation-no">#{q.quotation_no}</span></td>
                                                 <td>
-                                                    <div style={{ fontWeight: 500, fontSize: 13 }}>{q.user_name}</div>
-                                                    <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{q.user_email}</div>
+                                                    <div style={{ fontWeight: 500, fontSize: 13 }}>{q.user_name || 'Unknown User'}</div>
+                                                    <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{q.user_email || 'No email available'}</div>
                                                 </td>
                                                 <td style={{ color: 'var(--text-secondary)', fontSize: 13 }}>{fmt(q.created_at)}</td>
                                                 <td><span className="prompt-preview">{q.prompt_text}</span></td>

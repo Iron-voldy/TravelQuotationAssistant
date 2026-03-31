@@ -39,34 +39,55 @@ export const AuthProvider = ({ children }) => {
   const scheduleRefresh = useCallback((currentToken) => {
     clearRefreshTimer();
 
-
-    // Calculate delay from actual JWT expiry, refreshing 10 minutes before it dies.
-    // Fall back to 50-minute fixed delay if the token can't be decoded.
+    // Calculate delay from actual JWT expiry, using percentage-based buffer
+    // For short-lived tokens (< 10 minutes total), refresh at 30% remaining time
+    // For longer tokens, refresh at 10 minutes before expiry
     const expiresAt = getTokenExpiryMs(currentToken);
-    const TEN_MINUTES = 10 * 60 * 1000;
-    const refreshDelay = expiresAt
-      ? Math.max(expiresAt - Date.now() - TEN_MINUTES, 0)
-      : 50 * 60 * 1000;
+    let refreshDelay;
+    
+    if (expiresAt) {
+      const timeUntilExpiry = expiresAt - Date.now();
+      const TEN_MINUTES = 10 * 60 * 1000;
+      
+      if (timeUntilExpiry < 20 * 60 * 1000) {
+        // For tokens expiring in less than 20 minutes, refresh at 70% of lifetime
+        refreshDelay = Math.max(timeUntilExpiry * 0.7, 0);
+      } else {
+        // For longer-lived tokens, refresh 10 minutes before expiry
+        refreshDelay = Math.max(timeUntilExpiry - TEN_MINUTES, 0);
+      }
+    } else {
+      // Fallback: if we can't decode the token, refresh in 50 minutes
+      refreshDelay = 50 * 60 * 1000;
+    }
 
-    console.log(`[AUTH] Token refresh scheduled in ${Math.round(refreshDelay / 1000)}s`);
+    console.log(`[AUTH] Token refresh scheduled in ${Math.round(refreshDelay / 1000)}s (${Math.round(refreshDelay / 60000)}m)`);
 
     const doRefresh = async () => {
       try {
+        console.log('[AUTH] Attempting token refresh...');
         const res = await fetch(`${API_URL}/auth/refresh`, {
           method: 'POST',
           headers: { Authorization: `Bearer ${currentToken}` }
         });
+        
         if (res.ok) {
           const data = await res.json();
+          console.log('[AUTH] Token refreshed successfully');
           localStorage.setItem('token', data.token);
           setToken(data.token);
           // If server returned a refreshed Apple token (for agents), persist it
           if (data.appleAccessToken) {
+            console.log('[AUTH] Apple token refreshed for agent');
             localStorage.setItem('appleAccessToken', data.appleAccessToken);
           }
+          // Schedule the next refresh with the new token
           scheduleRefresh(data.token);
         } else {
-          // Refresh endpoint rejected the token — force logout
+          const errorData = await res.json().catch(() => ({}));
+          console.warn('[AUTH] Token refresh failed with status:', res.status, errorData);
+          
+          // If refresh failed, force logout and redirect to login
           localStorage.removeItem('token');
           localStorage.removeItem('user');
           localStorage.removeItem('appleAccessToken');
@@ -76,12 +97,16 @@ export const AuthProvider = ({ children }) => {
           window.location.href = '/login';
         }
       } catch (e) {
-        console.error('[AUTH] Token refresh failed:', e.message);
+        console.error('[AUTH] Token refresh error:', e.message);
+        // Don't logout on network errors, just retry later
+        // Schedule a retry attempt in 1 minute
+        setTimeout(() => scheduleRefresh(currentToken), 60 * 1000);
       }
     };
 
     if (refreshDelay === 0) {
-      // Token is already expired or within the 5-minute buffer — refresh immediately
+      // Token is already expired or very close — refresh immediately
+      console.log('[AUTH] Token expiring immediately, refreshing now');
       doRefresh();
     } else {
       refreshTimerRef.current = setTimeout(doRefresh, refreshDelay);
