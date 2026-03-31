@@ -348,7 +348,7 @@ const validateTravelPrompt = (rawText) => {
 };
 
 const ChatPage = () => {
-    const { user, loginPath, logout, theme, toggleTheme } = useAuth();
+    const { user, loginPath, logout, theme, toggleTheme, refreshAuthToken, token } = useAuth();
     const navigate = useNavigate();
     const currentLocation = useLocation();
     const [sessions, setSessions] = useState([]);
@@ -378,8 +378,36 @@ const ChatPage = () => {
     const closingVoiceModalRef = useRef(false);
     const voiceModalOpenRef = useRef(false);
     const startVoiceRecognitionRef = useRef(null);
+    const tokenRefreshIntervalRef = useRef(null);
 
     useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, sending, almostThere]);
+
+    // Set up auto-refresh of authentication token every 30 minutes to prevent expiry during long chat sessions
+    useEffect(() => {
+        if (!token) return;
+        
+        console.log('[CHATPAGE] 🔐 Setting up periodic token refresh (every 30 minutes)');
+        
+        const refreshTokenPeriodically = async () => {
+            try {
+                console.log('[CHATPAGE] 🔄 Periodically refreshing token...');
+                await refreshAuthToken(token);
+                console.log('[CHATPAGE] ✅ Token refreshed successfully');
+            } catch (e) {
+                console.warn('[CHATPAGE] ⚠️ Periodic token refresh failed:', e.message);
+                // Don't logout on periodic refresh failures, let the scheduled refresh in AuthContext handle it
+            }
+        };
+
+        // Set up interval to refresh token every 30 minutes
+        tokenRefreshIntervalRef.current = setInterval(refreshTokenPeriodically, 30 * 60 * 1000);
+        
+        return () => {
+            if (tokenRefreshIntervalRef.current) {
+                clearInterval(tokenRefreshIntervalRef.current);
+            }
+        };
+    }, [token, refreshAuthToken]);
 
     useEffect(() => {
         if (!voiceModalOpen) return undefined;
@@ -649,6 +677,15 @@ const ChatPage = () => {
         setInput('');
         if (textareaRef.current) { textareaRef.current.style.height = 'auto'; }
         setSending(true);
+
+        // Proactively refresh token before sending message to prevent "Token expired" errors
+        try {
+            console.log('[CHATPAGE] 🔄 Proactively refreshing token before sending message...');
+            await refreshAuthToken(token);
+            console.log('[CHATPAGE] ✅ Token refreshed before send');
+        } catch (e) {
+            console.warn('[CHATPAGE] ⚠️ Pre-send token refresh failed (will attempt with current token):', e.message);
+        }
 
         // Optimistically add user message to UI
         setMessages(p => [...p, { id: Date.now(), role: 'user', content: msg, created_at: new Date() }]);

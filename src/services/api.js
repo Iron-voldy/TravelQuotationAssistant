@@ -53,16 +53,25 @@ const attemptTokenRefresh = async () => {
 
       if (res.ok) {
         const data = await parseResponseBody(res);
+        console.log('[API] Token refresh response status:', res.status);
+        
+        // Ensure we have a new token before persisting
+        if (!data.token) {
+          console.error('[API] No token in refresh response:', data);
+          throw new Error('No token in refresh response');
+        }
+        
         persistSession({
           token: data.token,
           user: parseStoredUser(),
           appleAccessToken: data.appleAccessToken || localStorage.getItem('appleAccessToken'),
           loginPath: getStoredLoginPath()
         });
-        console.log('[API] Token refreshed successfully');
+        console.log('[API] ✅ Token refreshed successfully');
         return true;
       } else {
-        console.warn('[API] Token refresh failed with status:', res.status);
+        const errorData = await parseResponseBody(res);
+        console.warn('[API] Token refresh failed with status:', res.status, errorData);
         return false;
       }
     } catch (e) {
@@ -70,6 +79,7 @@ const attemptTokenRefresh = async () => {
       return false;
     } finally {
       refreshing = false;
+      refreshPromise = null;
     }
   })();
 
@@ -81,16 +91,17 @@ const handleResponse = async (res) => {
   if (!res.ok) {
     if (res.status === 401) {
       // Token expired or invalid — attempt refresh once
-      console.warn('[API] Received 401, attempting token refresh...');
+      console.warn('[API] ❌ Received 401 error, attemptin token refresh...');
       const refreshSucceeded = await attemptTokenRefresh();
       
       if (!refreshSucceeded) {
         // Refresh failed or no token available — clear auth and redirect to login
-        console.log('[API] Token refresh failed or no token, logging out');
+        console.log('[API] 🔒 Token refresh failed, logging out user to re-authenticate');
         redirectToLogin();
         throw new Error('Session expired. Please log in again.');
       }
       // If refresh succeeded, the caller should retry the original request with new token
+      console.log('[API] 🔄 Token refreshed, will retry request');
       throw new Error('TOKEN_REFRESHED_RETRY');
     }
     throw new Error(data.error || data.message || `Request failed: ${res.status}`);
@@ -119,8 +130,13 @@ const makeRetryableCall = async (fetchFn) => {
   } catch (e) {
     if (e.message === 'TOKEN_REFRESHED_RETRY') {
       // Retry the call with the new token
-      console.log('[API] Retrying request with refreshed token');
-      return await fetchFn();
+      console.log('[API] 🔄 Retrying request with refreshed token');
+      try {
+        return await fetchFn();
+      } catch (retryError) {
+        console.error('[API] ❌ Retry failed:', retryError.message);
+        throw retryError;
+      }
     }
     throw e;
   }
